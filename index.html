@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>내부 업무 요청 게시판 (Intranet SPA)</title>
+    <title>작업노트 요청 게시판 </title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,11 +63,12 @@
 <body>
 
     <!-- Chosen Palette: Intranet Blue (#1e88e5, #eef5f9, #455a64) -->
-    <!-- Application Structure Plan: The SPA features an Intranet layout. Folder list and Note list tables have been updated to prevent 2-line text wrapping using whitespace-nowrap and min-width techniques. The AI Sub-note creation has been migrated from a bottom sliding panel to a centered Modal popup to improve focus and UX. Split-Pane view is maintained for efficient note editing. -->
+    <!-- Application Structure Plan: The SPA features an Intranet layout. Folder list and Note list tables have been updated to prevent 2-line text wrapping using whitespace-nowrap and min-width techniques. The AI Sub-note creation has been migrated from a bottom sliding panel to a centered Modal popup to improve focus and UX. Split-Pane view is maintained for efficient note editing. The Manager's Response section has been updated to follow an AS-IS to TO-BE format with a friendly tone. -->
     <!-- Visualization & Content Choices: 
          - Modal for Folders & Notes: HTML fixed overlay (Goal: Organize/Inform). Clear, focused manual and AI inputs.
          - Split Pane Editor: Flexbox (Goal: Change). Allows referencing AI while authoring final text. Left pane includes full WYSIWYG editor UI for note content.
-         - Data Tables: whitespace-nowrap applied (Goal: Inform). Clean layout on standard desktop resolutions. -->
+         - Data Tables: whitespace-nowrap applied (Goal: Inform). Clean layout on standard desktop resolutions.
+         - Formatted AS-IS/TO-BE Response: Clear typography and background colors to distinguish the before and after states for non-technical managers. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All icons are Unicode. -->
 
     <div id="app" class="h-screen w-full flex flex-col font-sans bg-intra-bg overflow-hidden"></div>
@@ -86,7 +87,8 @@
             solutionTab: '1안',
             taskFilter: '전체',
             dateFilter: '이번달',
-            folderFilter: '전체'
+            folderFilter: '전체',
+            editModeFr06: false // Tracks if the Manager Answer is in edit mode
         };
 
         // --- 2. Helper Functions ---
@@ -139,7 +141,7 @@
             <header class="h-16 bg-intra-primary text-white flex items-center px-6 justify-between shrink-0 shadow-sm relative z-30">
                 <div class="flex items-center space-x-8">
                     <h1 class="text-lg font-bold flex items-center tracking-tight cursor-pointer" data-action="nav" data-view="list" data-menu="작업목록조회">
-                        📋 내부 업무 요청 게시판 <span class="ml-3 px-2 py-0.5 bg-white/20 text-white text-[10px] rounded">v1.6</span>
+                        📋 내부 업무 요청 게시판 <span class="ml-3 px-2 py-0.5 bg-white/20 text-white text-[10px] rounded">v1.7</span>
                     </h1>
                 </div>
                 <div class="flex items-center space-x-4">
@@ -224,7 +226,6 @@
                                     <span class="ml-2 bg-white px-2 py-0.5 rounded border border-intra-border text-intra-primary text-xs">${filteredList.length}건</span>
                                 </h3>
                             </div>
-                            <!-- Added overflow-x-auto and whitespace-nowrap to prevent 2-line wraps -->
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-sm min-w-max">
                                     <thead class="bg-intra-tableHead text-intra-text border-b border-intra-border">
@@ -259,7 +260,6 @@
                                                 <div class="bg-white border border-intra-border rounded-[5px] shadow-sm overflow-hidden">
                                                     <div class="bg-gray-50 px-4 py-3 border-b border-intra-border flex justify-between items-center">
                                                         <h4 class="font-bold text-intra-text text-sm flex items-center">↳ 하위 작업노트 목록</h4>
-                                                        <!-- Triggers AI Modal for Notes -->
                                                         <button data-action="toggle" data-key="showNewNoteModal" data-val="true" class="text-xs bg-intra-primary text-white px-3 py-1.5 rounded-[3px] hover:bg-intra-primaryDark transition font-bold shadow-sm">➕ 노트 추가</button>
                                                     </div>
                                                     ${f.notes && f.notes.length > 0 ? `
@@ -346,7 +346,6 @@
                                     
                                     <div class="flex justify-end space-x-2 pt-2">
                                         <button data-action="toggle" data-key="showNewNoteModal" data-val="false" class="px-5 py-2.5 border border-intra-border text-intra-text font-bold rounded-[3px] hover:bg-gray-50 transition text-sm">취소</button>
-                                        <!-- Navigates to the Split View Editor -->
                                         <button data-action="navAndCloseNoteModal" data-view="note_create_split" class="px-5 py-2.5 bg-intra-primary text-white rounded-[3px] font-bold hover:bg-intra-primaryDark transition text-sm">타이틀 확정 및 노트 작성 이동 ❯</button>
                                     </div>
                                 </div>
@@ -357,10 +356,8 @@
             `;
         };
 
-        // --- SPLIT PANE FOR NOTE EDITING (Content Input Page with AI Reference) ---
         const buildNoteCreateSplit = () => `
             <div class="flex h-full w-full bg-intra-bg">
-                
                 <!-- Left Pane: AI Analysis & Editable Note Content -->
                 <div class="w-1/2 p-6 overflow-y-auto border-r border-intra-border bg-white flex flex-col">
                     <div class="flex items-center text-sm text-intra-text/70 mb-4 shrink-0">
@@ -397,7 +394,7 @@
                         </div>
                     </div>
 
-                    <!-- Editable Note Details (Replaces old '원본 요청사항 요약') -->
+                    <!-- Editable Note Details -->
                     <div class="bg-gray-50 border border-intra-border rounded-[5px] p-5">
                         <h2 class="text-sm font-bold text-intra-text mb-3 flex items-center border-b border-intra-border pb-2">
                             📝 작업노트
@@ -422,7 +419,6 @@
                             <div>
                                 <span class="font-bold text-intra-text/70 block mb-1">내용</span>
                                 <div class="border border-intra-border rounded-[3px] bg-white overflow-hidden focus-within:border-intra-primary transition">
-                                    <!-- WYSIWYG Toolbar Mockup -->
                                     <div class="bg-[#f8f9fa] border-b border-intra-border px-2 py-1.5 flex items-center space-x-1">
                                         <button class="px-2 py-1 text-intra-text/60 hover:bg-gray-200 rounded font-bold">B</button>
                                         <button class="px-2 py-1 text-intra-text/60 hover:bg-gray-200 rounded italic">I</button>
@@ -460,7 +456,6 @@
                 <!-- Right Pane: Developer Input Form -->
                 <div class="w-1/2 flex flex-col bg-intra-bg">
                     
-                    <!-- Header -->
                     <div class="bg-white border-b border-intra-border px-6 py-4 shrink-0 flex justify-between items-center shadow-sm z-10">
                         <h2 class="text-lg font-bold text-intra-text">개발자 작업 노트 입력</h2>
                         <div class="flex space-x-2">
@@ -469,10 +464,8 @@
                         </div>
                     </div>
 
-                    <!-- Scrollable Form Content -->
                     <div class="p-6 overflow-y-auto flex-1 space-y-6">
                         
-                        <!-- Status and Time Panel -->
                         <div class="bg-white border border-intra-border rounded-[5px] p-5 shadow-sm">
                             <h3 class="text-sm font-bold border-l-[3px] border-intra-primary pl-2 mb-4">기본 정보 및 일정</h3>
                             <div class="grid grid-cols-2 gap-4 mb-4">
@@ -506,7 +499,6 @@
                             </div>
                         </div>
 
-                        <!-- Detail Input (Cause & Solution) -->
                         <div class="bg-white border border-intra-border rounded-[5px] p-5 shadow-sm">
                             <h3 class="text-sm font-bold border-l-[3px] border-intra-primary pl-2 mb-4">개발 원인 및 해결방안 작성</h3>
                             
@@ -586,26 +578,58 @@
                         <p>1. AuthInterceptor.java 수정<br/>  - handleTokenExpiry() 메소드 추가<br/>  - Response Code 401 명시적 반환 처리</p>
                         </div>
                     ` : `
-                        <div class="bg-white border border-t-0 border-intra-border p-8 shadow-sm">
+                        <div class="bg-white border border-t-0 border-intra-border p-8 shadow-sm ${state.editModeFr06 ? 'border-intra-primary bg-[#f8f9fa]' : ''}">
                             <div class="flex justify-between items-center mb-6 pb-2 border-b border-gray-100">
-                                <span class="text-lg font-bold text-intra-text">담당자 답변 (쉬운 언어 버전)</span>
-                                <span class="px-3 py-1 bg-[#e8f0fe] text-intra-primary rounded-[5px] text-xs font-bold flex items-center">✨ AI 초안 · 검토 필요</span>
+                                <span class="text-lg font-bold text-intra-text flex items-center">
+                                    담당자 답변
+                                    ${!state.editModeFr06 ? '<span class="ml-3 px-3 py-1 bg-[#e8f0fe] text-intra-primary rounded-[5px] text-xs font-bold flex items-center">✨ AI 초안</span>' : ''}
+                                    ${state.editModeFr06 ? '<span class="ml-3 px-3 py-1 bg-intra-primary text-white rounded-[5px] text-xs font-bold flex items-center">✏️ 직접 편집 모드</span>' : ''}
+                                </span>
+                                ${!state.editModeFr06 ? `
+                                    <button data-action="set" data-key="editModeFr06" data-val="true" class="text-sm font-medium text-intra-text hover:text-intra-primary flex items-center border border-intra-border px-3 py-1.5 rounded-[5px] bg-white transition">
+                                        ✏️ AI 초안 수정하기
+                                    </button>
+                                ` : ''}
                             </div>
-                            <div class="space-y-6 text-sm text-intra-text">
-                                <p>안녕하세요. 요청하신 로그인 세션 오류 건에 대한 처리 결과를 안내드립니다.</p>
-                                <div>
-                                    <h4 class="font-bold text-intra-primary flex items-center mb-2"><span class="w-2 h-2 bg-intra-primary mr-2 rounded-sm"></span> 어떻게 수정되었나요?</h4>
-                                    <p class="pl-4 bg-gray-50 p-3 border-l-[3px] border-intra-border">세션이 만료되면 오류 대신 로그인 화면으로 자동 이동하도록 수정했습니다.</p>
-                                </div>
+                            
+                            <div class="text-sm text-intra-text">
+                                ${state.editModeFr06 ? `
+                                    <textarea class="w-full h-64 border border-intra-border rounded-[5px] p-4 text-sm outline-none focus:border-intra-primary leading-relaxed" defaultValue="안녕하세요, 선생님.&#13;&#10;요청하신 [로그인 세션 만료 시 빈 화면 노출 오류] 건에 대한 처리 결과를 안내해 드립니다.&#13;&#10;&#13;&#10;■ 메뉴 경로&#13;&#10;- 공통모듈 > 로그인&#13;&#10;&#13;&#10;■ 기존에는 어땠나요? (AS-IS)&#13;&#10;일정 시간(30분)이 지나 로그인이 풀렸을 때 화면을 새로고침하면, 오류 창이나 빈 화면이 나타나 이용에 불편함이 있으셨습니다.&#13;&#10;&#13;&#10;■ 어떻게 수정되었나요? (TO-BE)&#13;&#10;이제는 세션이 만료된 상태에서 새로고침을 하더라도 오류 화면 대신 '로그인 화면'으로 자연스럽게 다시 이동하도록 수정되었습니다. 평소처럼 편리하게 다시 로그인하여 이용하실 수 있습니다!&#13;&#10;&#13;&#10;확인 후 검수완료 부탁드립니다.&#13;&#10;감사합니다."></textarea>
+                                ` : `
+                                    <div class="leading-relaxed">
+                                        <p>안녕하세요, 선생님.<br>요청하신 [로그인 세션 만료 시 빈 화면 노출 오류] 건에 대한 처리 결과를 안내해 드립니다.</p>
+                                        <div class="mt-5 space-y-4">
+                                            <div>
+                                                <h4 class="font-bold text-intra-primary flex items-center mb-1"><span class="w-1.5 h-1.5 bg-intra-primary mr-2 rounded-full"></span> 메뉴 경로</h4>
+                                                <p class="pl-4 text-intra-text/80">공통모듈 > 로그인</p>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-bold text-intra-primary flex items-center mb-1"><span class="w-1.5 h-1.5 bg-intra-primary mr-2 rounded-full"></span> 기존에는 어땠나요? (AS-IS)</h4>
+                                                <p class="pl-4 text-intra-text/80">일정 시간(30분)이 지나 로그인이 풀렸을 때 화면을 새로고침하면, 오류 창이나 빈 화면이 나타나 이용에 불편함이 있으셨습니다.</p>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-bold text-intra-primary flex items-center mb-1"><span class="w-1.5 h-1.5 bg-intra-primary mr-2 rounded-full"></span> 어떻게 수정되었나요? (TO-BE)</h4>
+                                                <p class="pl-4 bg-gray-50 p-3 border-l-[3px] border-intra-border rounded text-intra-text">이제는 세션이 만료된 상태에서 새로고침을 하더라도 오류 화면 대신 <b>'로그인 화면'으로 자연스럽게 다시 이동</b>하도록 수정되었습니다. 평소처럼 편리하게 다시 로그인하여 이용하실 수 있습니다!</p>
+                                            </div>
+                                        </div>
+                                        <p class="mt-5">확인 후 검수완료 부탁드립니다.<br>감사합니다.</p>
+                                    </div>
+                                `}
                             </div>
+
                             <div class="mt-8 flex space-x-3">
-                                <button class="px-6 py-2.5 bg-intra-primary text-white font-bold rounded-[5px] hover:bg-intra-primaryDark transition">답변 확정 및 발송</button>
+                                ${state.editModeFr06 ? `
+                                    <button data-action="set" data-key="editModeFr06" data-val="false" class="px-6 py-2.5 bg-intra-primary text-white font-bold rounded-[5px] hover:bg-intra-primaryDark transition flex items-center">
+                                        💾 편집 내용 저장
+                                    </button>
+                                ` : ``}
+                                <button data-action="set" data-key="answerType" data-val="tech" class="px-6 py-2.5 bg-white border border-intra-border text-intra-text font-bold rounded-[5px] hover:bg-gray-50 ml-auto transition">개발 답변으로 전환</button>
                             </div>
                         </div>
                     `}
                 ` : `
                     <div class="bg-[#fff3e0] border border-[#ffe0b2] rounded-[5px] p-4 flex items-start text-[#ff6200] text-sm shadow-sm">
-                        <p class="font-bold">⚠️ 수정된 내용과 연관된 매뉴얼 2건이 업데이트가 필요합니다.</p>
+                        <p class="font-bold">⚠️ 수정된 내용과 연관된 매뉴얼 2건이 업데이트가 필요합니다. 직접 매뉴얼 시스템에 등록해주세요.</p>
                     </div>
                 `}
             </div>
@@ -775,7 +799,7 @@
                 state[btn.dataset.key] = btn.dataset.val === 'true';
                 render();
             } else if (action === 'set') {
-                state[btn.dataset.key] = btn.dataset.val;
+                state[btn.dataset.key] = btn.dataset.val === 'true' ? true : btn.dataset.val === 'false' ? false : btn.dataset.val;
                 render();
             } else if (action === 'toggleFolder') {
                 const folderId = btn.dataset.id;
