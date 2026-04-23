@@ -63,11 +63,12 @@
 <body>
 
     <!-- Chosen Palette: Intranet Blue (#1e88e5, #eef5f9, #455a64) -->
-    <!-- Application Structure Plan: The SPA now includes a master-detail accordion in the folder list and a split-pane layout for task editing (Left: Request, Right: Developer Input). Task lists have been updated with new specific columns (University, Request Type, Periods, Estimated/Actual times). The status workflow has been streamlined with new color coding (Yellow, Red, Blue, Gray). -->
+    <!-- Application Structure Plan: The SPA features an Intranet layout. Based on recent feedback: Folder creation is now a manual modal. The AI title generation (FR-01) is repurposed for Sub-note creation. Sub-note creation uses a Split-Pane view (Edit Mode) showing AI analysis as a reference on the left, and input forms (including new Period and Est. Time fields) on the right. The Sub-note Detail view (Read Mode) hides the AI analysis and beautifully displays the manually authored content before showing the FR-06/09 tabs. -->
     <!-- Visualization & Content Choices: 
-         - Accordion Folder List: HTML Table Row toggling (Goal: Organize). Allows drilling down into sub-notes without leaving the context of the folder list.
-         - Split Pane Note Editor: Flexbox layout (Goal: Change/Compare). Allows developers to read the request and write their response simultaneously.
-         - Dynamic Status Dropdown: Select element (Goal: Change). Allows immediate status updates. -->
+         - Modal for Folders: HTML fixed overlay (Goal: Organize). Simple, non-intrusive manual input.
+         - AI Panel for Notes: Bottom sliding panel (Goal: Inform/Change). AI suggestions for new tasks.
+         - Split Pane Editor: Flexbox (Goal: Change). Allows referencing AI while authoring final text.
+         - Read-Only Detail View: Structured HTML Cards (Goal: Inform). Clean presentation of finalized data without clutter. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All icons are Unicode. -->
 
     <div id="app" class="h-screen w-full flex flex-col font-sans bg-intra-bg overflow-hidden"></div>
@@ -75,10 +76,11 @@
     <script>
         // --- 1. State Management ---
         const state = {
-            view: 'list', // 'list', 'similar_search', 'folder_detail', 'task_form', 'note_create', 'note_detail', 'my_tasks', 'dashboard', 'note_split_view'
+            view: 'list', // 'list', 'similar_search', 'folder_detail', 'note_create_split', 'note_detail_view', 'my_tasks', 'dashboard'
             activeMenu: '작업목록조회', 
-            showFr01Panel: false,
-            expandedFolderId: null, // Tracks which folder row is open
+            showNewFolderModal: false, // For manual folder creation
+            showFr01Panel: false, // For AI Sub-note title creation
+            expandedFolderId: null,
             createTab: 'cause', 
             detailTab: 'answer', 
             answerType: 'tech',
@@ -104,34 +106,27 @@
             { 
                 id: 'F-001', title: '[로그인] 세션 만료 오류 수정 요청', type: '오류수정', date: '2026-04-18', author: '김개발', status: '작업중', univ: 'A대학',
                 notes: [
-                    { id: 'N-001-1', title: '세션 만료 예외 처리 로직 추가', est: '2h', actual: '2.5h', status: '작업중', assignee: '김개발' },
-                    { id: 'N-001-2', title: '로그인 화면 UI 타임아웃 팝업 연동', est: '1h', actual: '-', status: '검토중', assignee: '이프론트' }
+                    { id: 'N-001-1', title: '세션 만료 예외 처리 로직 추가', period: '26.04.18 ~ 04.20', est: '2h', actual: '2.5h', status: '작업중', assignee: '김개발' },
+                    { id: 'N-001-2', title: '로그인 화면 UI 타임아웃 팝업 연동', period: '26.04.19 ~ 04.21', est: '1h', actual: '-', status: '검토중', assignee: '이프론트' }
                 ]
             },
             { 
                 id: 'F-002', title: '[매출현황] 월별 집계 기능 개선 요청', type: '기능개선', date: '2026-04-17', author: '이기획', status: '작업완료', univ: 'B대학',
                 notes: [
-                    { id: 'N-002-1', title: '월별 집계 쿼리 튜닝 및 인덱스 추가', est: '4h', actual: '3h', status: '작업완료', assignee: '박디비' }
+                    { id: 'N-002-1', title: '월별 집계 쿼리 튜닝 및 인덱스 추가', period: '26.04.17 ~ 04.18', est: '4h', actual: '3h', status: '작업완료', assignee: '박디비' }
                 ]
             },
             { 
                 id: 'F-003', title: '[회원관리] 신규 탈퇴 사유 항목 추가', type: '신규구축', date: '2026-04-16', author: '박운영', status: '검토중', univ: 'C대학',
                 notes: []
-            },
-            { 
-                id: 'F-004', title: '[공통모듈] 날짜 포맷 변경 요청', type: '공통변경', date: '2026-04-15', author: '최개발', status: '검수중', univ: 'A대학',
-                notes: [
-                    { id: 'N-004-1', title: 'DateUtil 공통 모듈 정규식 패치', est: '2h', actual: '2h', status: '검수중', assignee: '최개발' }
-                ]
-            },
+            }
         ];
 
         const MOCK_MY_TASKS = [
-            { id: 'N-001-1', title: '[로그인] 세션 만료 예외 처리', univ: 'A대학', type: '오류수정', period: '04-18 ~ 04-21', estTime: '3h', actTime: '3.5h', author: '김개발', status: '작업중' },
-            { id: 'N-102-3', title: '[수강신청] 취소버튼 500 오류', univ: 'B대학', type: '오류수정', period: '04-17 ~ 04-20', estTime: '2h', actTime: '1h', author: '김개발', status: '검수중' },
-            { id: 'N-204-1', title: '[성적조회] PDF 출력 레이아웃', univ: 'A대학', type: '기능개선', period: '04-15 ~ 04-18', estTime: '8h', actTime: '8h', author: '김개발', status: '작업완료' },
-            { id: 'N-305-2', title: '[공지사항] 첨부파일 업로드 오류', univ: 'C대학', type: '오류수정', period: '04-14 ~ 04-17', estTime: '4h', actTime: '5h', author: '김개발', status: '작업중' },
-            { id: 'N-099-1', title: '[대시보드] KPI 위젯 신규 추가', univ: '전체', type: '신규구축', period: '04-10 ~ 04-25', estTime: '16h', actTime: '-', author: '김개발', status: '검토중' },
+            { id: 'N-001-1', title: '[로그인] 세션 만료 예외 처리', univ: 'A대학', type: '오류수정', period: '04-18 ~ 04-21', estTime: '3h', actTime: '3.5h', author: '김개발', status: '작업중', progress: 60, statusColor: 'bg-red-100 text-red-700' },
+            { id: 'N-102-3', title: '[수강신청] 취소버튼 500 오류', univ: 'B대학', type: '오류수정', period: '04-17 ~ 04-20', estTime: '2h', actTime: '1h', author: '김개발', status: '검수중', progress: 90, statusColor: 'bg-blue-100 text-intra-primary' },
+            { id: 'N-204-1', title: '[성적조회] PDF 출력 레이아웃', univ: 'A대학', type: '기능개선', period: '04-15 ~ 04-18', estTime: '8h', actTime: '8h', author: '김개발', status: '작업완료', progress: 100, statusColor: 'bg-gray-200 text-gray-700' },
+            { id: 'N-305-2', title: '[공지사항] 첨부파일 업로드 오류', univ: 'C대학', type: '오류수정', period: '04-14 ~ 04-17', estTime: '4h', actTime: '5h', author: '김개발', status: '작업중', progress: 80, statusColor: 'bg-red-100 text-red-700', isOverdue: true },
         ];
 
         let barChartInstance = null;
@@ -208,7 +203,7 @@
                     <div class="p-6 flex-1 pb-32 overflow-y-auto">
                         <div class="mb-4">
                             <h2 class="text-xl font-bold text-intra-text mb-2">작업폴더 및 노트 목록</h2>
-                            <p class="text-sm text-intra-text/80">ℹ️ 작업폴더를 클릭하면 하위에 등록된 작업노트 목록이 아코디언 형태로 펼쳐집니다. 작업노트를 클릭하여 상세 내역을 입력하세요.</p>
+                            <p class="text-sm text-intra-text/80">ℹ️ 폴더를 클릭하여 하위 작업노트 목록을 펼치고 상세 내역을 관리할 수 있습니다.</p>
                         </div>
                         <div class="bg-white rounded-[5px] shadow-none border border-intra-border p-4 mb-6 flex items-center space-x-4">
                             <div class="flex-1 relative flex items-center border border-intra-border rounded-[5px] px-3 bg-white focus-within:ring-1 focus-within:ring-intra-primary focus-within:border-intra-primary">
@@ -216,7 +211,9 @@
                                 <input type="text" placeholder="요청 내용으로 검색..." class="w-full pl-2 py-2 outline-none text-sm bg-transparent" />
                             </div>
                             <button class="px-6 py-2 bg-intra-primary text-white rounded-[5px] font-medium hover:bg-intra-primaryDark transition text-sm">검색</button>
-                            <button data-action="toggle" data-key="showFr01Panel" data-val="true" class="px-6 py-2 bg-intra-mint text-white rounded-[5px] font-medium hover:bg-[#1eb7cb] flex items-center transition text-sm">
+                            
+                            <!-- Changed: Folder creation is now manual -->
+                            <button data-action="toggle" data-key="showNewFolderModal" data-val="true" class="px-6 py-2 bg-white border border-intra-border text-intra-text rounded-[5px] font-medium hover:bg-gray-50 flex items-center transition text-sm">
                                 ➕ 새 폴더 등록
                             </button>
                         </div>
@@ -259,27 +256,30 @@
                                     <tr class="bg-intra-bg border-b-2 border-intra-primary/30">
                                         <td colspan="7" class="p-6">
                                             <div class="bg-white border border-intra-border rounded-[5px] shadow-sm overflow-hidden">
-                                                <div class="bg-gray-50 px-4 py-2 border-b border-intra-border flex justify-between items-center">
+                                                <div class="bg-gray-50 px-4 py-3 border-b border-intra-border flex justify-between items-center">
                                                     <h4 class="font-bold text-intra-text text-sm flex items-center">↳ 하위 작업노트 목록</h4>
-                                                    <button class="text-xs bg-white border border-intra-border px-2 py-1 rounded hover:bg-gray-100 transition">+ 노트 추가</button>
+                                                    <!-- Changed: Triggers AI Panel for Notes -->
+                                                    <button data-action="toggle" data-key="showFr01Panel" data-val="true" class="text-xs bg-intra-primary text-white px-3 py-1.5 rounded-[3px] hover:bg-intra-primaryDark transition font-bold">➕ 노트 추가</button>
                                                 </div>
                                                 ${f.notes && f.notes.length > 0 ? `
                                                 <table class="w-full text-xs text-left">
                                                     <thead class="bg-white border-b border-intra-border text-intra-text/70">
                                                         <tr>
-                                                            <th class="py-2 px-4 font-medium">노트 ID</th>
-                                                            <th class="py-2 px-4 font-medium">제목</th>
+                                                            <th class="py-2 px-4 font-medium w-24">노트 ID</th>
+                                                            <th class="py-2 px-4 font-medium">노트 제목</th>
+                                                            <th class="py-2 px-4 font-medium text-center">요청기간</th>
                                                             <th class="py-2 px-4 font-medium text-center">예상 공수</th>
                                                             <th class="py-2 px-4 font-medium text-center">실제 공수</th>
                                                             <th class="py-2 px-4 font-medium text-center">담당자</th>
-                                                            <th class="py-2 px-4 font-medium text-center">상태</th>
+                                                            <th class="py-2 px-4 font-medium text-center w-24">상태</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody class="divide-y divide-gray-100">
                                                         ${f.notes.map(n => `
-                                                            <tr class="hover:bg-blue-50 cursor-pointer transition group" data-action="nav" data-view="note_split_view">
+                                                            <tr class="hover:bg-blue-50 cursor-pointer transition group" data-action="nav" data-view="note_detail_view">
                                                                 <td class="py-3 px-4 font-mono text-intra-primary group-hover:underline">${n.id}</td>
                                                                 <td class="py-3 px-4 font-bold">${n.title}</td>
+                                                                <td class="py-3 px-4 text-center font-mono text-intra-text/70">${n.period}</td>
                                                                 <td class="py-3 px-4 text-center text-intra-text/70">${n.est}</td>
                                                                 <td class="py-3 px-4 text-center font-bold">${n.actual}</td>
                                                                 <td class="py-3 px-4 text-center">${n.assignee}</td>
@@ -290,7 +290,7 @@
                                                         `).join('')}
                                                     </tbody>
                                                 </table>
-                                                ` : `<div class="p-4 text-center text-sm text-intra-text/50">등록된 하위 작업노트가 없습니다.</div>`}
+                                                ` : `<div class="p-6 text-center text-sm text-intra-text/50 bg-white">등록된 하위 작업노트가 없습니다. 우측 상단의 '노트 추가' 버튼을 눌러 작업을 배정하세요.</div>`}
                                             </div>
                                         </td>
                                     </tr>
@@ -301,27 +301,47 @@
                         </div>
                     </div>
 
-                    <!-- Bottom Panel: FR-01 -->
+                    <!-- Manual New Folder Modal -->
+                    ${state.showNewFolderModal ? `
+                        <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+                            <div class="bg-white rounded-[5px] p-6 w-[400px] shadow-lg border border-intra-border">
+                                <h3 class="font-bold text-lg mb-4 text-intra-text flex items-center">📁 새 폴더 등록</h3>
+                                <label class="block text-sm font-bold text-intra-text mb-2">폴더명 입력 (기획자 직접 지정)</label>
+                                <input type="text" class="w-full border border-intra-border rounded-[3px] p-2.5 text-sm outline-none focus:border-intra-primary mb-6 bg-gray-50" placeholder="예: [학사관리] 수강신청 오류 관련">
+                                <div class="flex justify-end space-x-2">
+                                    <button data-action="toggle" data-key="showNewFolderModal" data-val="false" class="px-4 py-2 border border-intra-border rounded-[3px] text-sm hover:bg-gray-50 font-bold text-intra-text">취소</button>
+                                    <button data-action="toggle" data-key="showNewFolderModal" data-val="false" class="px-4 py-2 bg-intra-primary text-white rounded-[3px] text-sm hover:bg-intra-primaryDark font-bold">폴더 등록</button>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Bottom Panel: AI Panel for Notes (Repurposed FR-01) -->
                     <div class="absolute bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border-t border-intra-border transform transition-transform z-20 ${state.showFr01Panel ? 'translate-y-0' : 'translate-y-full'}" style="transition: transform 0.3s ease;">
                         <div class="bg-intra-primary text-white px-6 py-3 flex justify-between items-center">
-                            <h3 class="font-medium flex items-center">✨ 자동 타이틀 생성 미리보기</h3>
+                            <h3 class="font-medium flex items-center">✨ 새 작업노트 타이틀 생성 (AI)</h3>
                             ${getBadge('01')}
                         </div>
                         <div class="p-6">
-                            <label class="block text-sm text-intra-text mb-2">요청 내용 입력</label>
-                            <textarea class="w-full border border-intra-border rounded-[5px] p-3 text-sm focus:ring-1 focus:ring-intra-primary outline-none mb-4 h-20">로그인 화면에서 세션 만료 후 새로고침 시 오류 페이지로 이동되는 문제 발생</textarea>
+                            <label class="block text-sm font-bold text-intra-text mb-2">요청 상세 내용 입력</label>
+                            <textarea class="w-full border border-intra-border rounded-[5px] p-3 text-sm focus:ring-1 focus:ring-intra-primary outline-none mb-4 h-20">로그인 화면에서 세션 만료 후 새로고침 시 오류 페이지로 이동되는 문제 발생에 대한 처리 내역</textarea>
                             
-                            <label class="block text-sm text-intra-text mb-2">AI 자동 생성 타이틀 후보</label>
+                            <label class="block text-sm font-bold text-intra-text mb-2">AI 자동 생성 타이틀 후보</label>
                             <div class="flex space-x-6 mb-6">
                                 <label class="flex items-center space-x-2 cursor-pointer">
                                     <input type="radio" name="title" checked class="w-4 h-4 text-intra-primary focus:ring-intra-primary" />
-                                    <span class="text-intra-text font-bold">[로그인] 세션 만료 후 새로고침 오류 수정</span>
+                                    <span class="text-intra-text font-bold">세션 만료 예외 처리 로직 추가</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="radio" name="title" class="w-4 h-4 text-intra-primary focus:ring-intra-primary" />
+                                    <span class="text-intra-text font-bold">로그인 타임아웃 오류 수정</span>
                                 </label>
                             </div>
                             
                             <div class="flex space-x-3">
-                                <button data-action="navAndClosePanel" data-view="similar_search" class="px-6 py-2.5 bg-intra-primary text-white rounded-[5px] font-medium hover:bg-intra-primaryDark transition text-sm">이 타이틀로 확정</button>
-                                <button data-action="toggle" data-key="showFr01Panel" data-val="false" class="px-6 py-2.5 border border-intra-border text-intra-text rounded-[5px] hover:bg-gray-50 transition text-sm">취소</button>
+                                <!-- Navigates to the Split View Editor -->
+                                <button data-action="navAndClosePanel" data-view="note_create_split" class="px-6 py-2.5 bg-intra-primary text-white rounded-[5px] font-bold hover:bg-intra-primaryDark transition text-sm">타이틀 확정 및 노트 입력 이동 ❯</button>
+                                <button data-action="toggle" data-key="showFr01Panel" data-val="false" class="px-6 py-2.5 border border-intra-border text-intra-text font-bold rounded-[5px] hover:bg-gray-50 transition text-sm">취소</button>
                             </div>
                         </div>
                     </div>
@@ -329,42 +349,22 @@
             `;
         };
 
-        // --- NEW VIEW: SPLIT PANE FOR NOTE EDITING ---
-        const buildNoteSplitView = () => `
+        // --- SPLIT PANE FOR NOTE EDITING (Content Input Page with AI Reference) ---
+        const buildNoteCreateSplit = () => `
             <div class="flex h-full w-full bg-intra-bg">
                 
-                <!-- Left Pane: Request Information -->
+                <!-- Left Pane: AI Analysis & Request Info (Read-Only Reference) -->
                 <div class="w-1/2 p-6 overflow-y-auto border-r border-intra-border bg-white flex flex-col">
                     <div class="flex items-center text-sm text-intra-text/70 mb-4 shrink-0">
-                        <span class="cursor-pointer hover:text-intra-primary" data-action="nav" data-view="list">작업폴더 목록</span> ❯ 
-                        <span class="font-bold text-intra-text">작업노트 상세 및 편집</span>
+                        <span class="cursor-pointer hover:text-intra-primary" data-action="nav" data-view="list">작업목록</span> ❯ 
+                        <span class="font-bold text-intra-text">작업노트 입력</span>
                     </div>
+                    
+                    <p class="mb-6 text-sm text-intra-text/80">ℹ️ 좌측의 AI 분석 결과 및 요청 내용을 참고하여, 우측 폼에 개발 실제 내역을 작성해 주세요.</p>
 
-                    <div class="bg-gray-50 border border-intra-border rounded-[5px] p-5 mb-6">
-                        <h2 class="text-sm font-bold text-intra-primary mb-3 flex items-center border-b border-intra-border pb-2">
-                            📝 원본 요청사항 요약
-                        </h2>
-                        <div class="space-y-4 text-sm">
-                            <div>
-                                <span class="font-bold text-intra-text/70 block mb-1">시스템 메뉴 경로</span>
-                                <span class="bg-white px-2 py-1 rounded border border-gray-200">학사관리 > 수강신청 > 수강취소 신청</span>
-                            </div>
-                            <div>
-                                <span class="font-bold text-intra-text/70 block mb-1">사용자 구분</span>
-                                <span class="bg-white px-2 py-1 rounded border border-gray-200">상담원</span>
-                            </div>
-                            <div>
-                                <span class="font-bold text-intra-text/70 block mb-1">요청 원문</span>
-                                <div class="bg-white border border-gray-200 p-3 rounded">
-                                    세션 만료 시 redirect 처리 미흡 — Spring Security filterChain에서 expired session을 catch하지 못해 500 오류 반환. IE에서 SameSite 쿠키 속성 미지원으로 세션 재발급 실패.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-[#f1f8fc] border border-[#d6e9f5] rounded-[5px] p-5">
+                    <div class="bg-[#f1f8fc] border border-[#d6e9f5] rounded-[5px] p-5 mb-6">
                         <h2 class="text-sm font-bold text-intra-primary mb-3 flex items-center border-b border-[#d6e9f5] pb-2">
-                            🤖 AI 1차 분석 결과
+                            🤖 AI 1차 분석 결과 (참고용)
                         </h2>
                         <ul class="text-sm text-intra-text space-y-2">
                             <li><span class="font-bold">분류:</span> 오류수정 (Bug Fix)</li>
@@ -372,29 +372,48 @@
                             <li><span class="font-bold">발생환경:</span> IE 브라우저</li>
                         </ul>
                     </div>
+
+                    <div class="bg-gray-50 border border-intra-border rounded-[5px] p-5">
+                        <h2 class="text-sm font-bold text-intra-text mb-3 flex items-center border-b border-intra-border pb-2">
+                            📝 원본 요청사항 요약
+                        </h2>
+                        <div class="space-y-4 text-sm">
+                            <div>
+                                <span class="font-bold text-intra-text/70 block mb-1">메뉴 경로 / 사용자</span>
+                                <span class="bg-white px-2 py-1 rounded border border-gray-200">공통모듈 > 로그인 / 전체사용자</span>
+                            </div>
+                            <div>
+                                <span class="font-bold text-intra-text/70 block mb-1">요청 원문</span>
+                                <div class="bg-white border border-gray-200 p-3 rounded">
+                                    세션 만료 시 redirect 처리 미흡 — Spring Security filterChain에서 expired session을 catch하지 못해 500 오류 반환.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Right Pane: Developer Input Form -->
                 <div class="w-1/2 flex flex-col bg-intra-bg">
                     
-                    <!-- Header of Right Pane -->
-                    <div class="bg-white border-b border-intra-border px-6 py-4 shrink-0 flex justify-between items-center">
+                    <!-- Header -->
+                    <div class="bg-white border-b border-intra-border px-6 py-4 shrink-0 flex justify-between items-center shadow-sm z-10">
                         <h2 class="text-lg font-bold text-intra-text">개발자 작업 노트 입력</h2>
                         <div class="flex space-x-2">
-                            <button class="px-4 py-1.5 border border-intra-border bg-white text-sm font-bold rounded-[3px] hover:bg-gray-50 transition">임시저장</button>
-                            <button class="px-4 py-1.5 bg-intra-primary text-white text-sm font-bold rounded-[3px] hover:bg-intra-primaryDark transition">저장 및 업데이트</button>
+                            <button class="px-4 py-1.5 border border-intra-border bg-white text-sm font-bold text-intra-text rounded-[3px] hover:bg-gray-50 transition">임시저장</button>
+                            <!-- Saving acts as finalizing and navigating to the View page -->
+                            <button data-action="nav" data-view="note_detail_view" class="px-4 py-1.5 bg-intra-primary text-white text-sm font-bold rounded-[3px] hover:bg-intra-primaryDark transition">저장 및 업데이트</button>
                         </div>
                     </div>
 
                     <!-- Scrollable Form Content -->
                     <div class="p-6 overflow-y-auto flex-1 space-y-6">
                         
-                        <!-- Status and Time Panel -->
+                        <!-- Status and Time Panel (New Fields Added) -->
                         <div class="bg-white border border-intra-border rounded-[5px] p-5 shadow-sm">
-                            <h3 class="text-sm font-bold border-l-[3px] border-intra-primary pl-2 mb-4">기본 정보 및 상태 변경</h3>
-                            <div class="grid grid-cols-2 gap-6">
+                            <h3 class="text-sm font-bold border-l-[3px] border-intra-primary pl-2 mb-4">기본 정보 및 일정</h3>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
                                 <div>
-                                    <label class="block text-xs font-bold text-intra-text/70 mb-1">현재 작업 상태 변경</label>
+                                    <label class="block text-xs font-bold text-intra-text/70 mb-1">현재 작업 상태</label>
                                     <select class="w-full border border-intra-border rounded-[3px] p-2 text-sm outline-none focus:border-intra-primary font-bold bg-white">
                                         <option value="검토중">🟡 검토중</option>
                                         <option value="작업중" selected>🔴 작업중</option>
@@ -403,63 +422,133 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-intra-text/70 mb-1">실제 소요시간 기록 (단위: h)</label>
-                                    <input type="text" class="w-full border border-intra-border rounded-[3px] p-2 text-sm outline-none focus:border-intra-primary bg-white" placeholder="예: 3.5h" value="2.5h" />
+                                    <label class="block text-xs font-bold text-intra-text/70 mb-1">담당자</label>
+                                    <input type="text" class="w-full border border-intra-border rounded-[3px] p-2 text-sm outline-none focus:border-intra-primary bg-gray-50" value="김개발" readonly />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 border-t border-intra-border pt-4">
+                                <div class="col-span-3">
+                                    <label class="block text-xs font-bold text-intra-text/70 mb-1">작업 요청 기간</label>
+                                    <input type="text" class="w-full border border-intra-border rounded-[3px] p-2 text-sm outline-none focus:border-intra-primary bg-white" placeholder="YYYY-MM-DD ~ YYYY-MM-DD" value="2026-04-18 ~ 2026-04-20" />
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-xs font-bold text-intra-text/70 mb-1">예상 공수 시간</label>
+                                    <input type="text" class="w-full border border-intra-border rounded-[3px] p-2 text-sm outline-none focus:border-intra-primary bg-white" placeholder="예: 4h" value="3h" />
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-xs font-bold text-intra-primary mb-1">실제 소요 시간 기록 (입력)</label>
+                                    <input type="text" class="w-full border border-intra-primary rounded-[3px] p-2 text-sm outline-none focus:ring-1 focus:ring-intra-primary bg-white" placeholder="예: 3.5h" value="2.5h" />
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Estimate Policy Table Info -->
-                        <div class="bg-[#fff3e0] border border-[#ffe0b2] rounded-[5px] p-4 text-[11px] text-intra-text/80 shadow-sm">
-                            <p class="font-bold text-[#ff6200] mb-1">💡 작업 소요시간 산정 가이드 (주니어 기준)</p>
-                            <table class="w-full text-left mt-2">
-                                <thead><tr class="border-b border-[#ffcc80]"><th class="py-1">유형</th><th>원인분석</th><th>코드수정</th><th>테스트</th><th>총 소요 기준</th></tr></thead>
-                                <tbody>
-                                    <tr><td>단순 오류</td><td>1h</td><td>0.5h</td><td>0.5h</td><td class="font-bold">2~3h</td></tr>
-                                    <tr><td>중간 오류</td><td>2h</td><td>1h</td><td>1h</td><td class="font-bold">4~5h</td></tr>
-                                    <tr><td>기능 개선</td><td>2h</td><td>4~6h</td><td>2h</td><td class="font-bold">8~10h</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Detail Input -->
+                        <!-- Detail Input (Cause & Solution) -->
                         <div class="bg-white border border-intra-border rounded-[5px] p-5 shadow-sm">
-                            <h3 class="text-sm font-bold border-l-[3px] border-intra-primary pl-2 mb-4">개발 원인 및 해결방안</h3>
+                            <h3 class="text-sm font-bold border-l-[3px] border-intra-primary pl-2 mb-4">개발 원인 및 해결방안 작성</h3>
                             
-                            <label class="block text-xs font-bold text-intra-text/70 mb-1">원인 분석 내용</label>
-                            <textarea class="w-full border border-intra-border rounded-[3px] p-3 text-sm outline-none focus:border-intra-primary mb-4" rows="3">SessionExpiredException 핸들러 부재로 인한 예외 반환</textarea>
+                            <label class="block text-xs font-bold text-intra-text/70 mb-1">원인 분석 내용 직접 작성</label>
+                            <textarea class="w-full border border-intra-border rounded-[3px] p-3 text-sm outline-none focus:border-intra-primary mb-4" rows="3">SessionExpiredException 핸들러 부재로 인한 예외 반환 확인됨.</textarea>
 
-                            <label class="block text-xs font-bold text-intra-text/70 mb-1">적용된 해결방안 (1안/2안 중 선택 작성)</label>
-                            <textarea class="w-full border border-intra-border rounded-[3px] p-3 text-sm outline-none focus:border-intra-primary mb-4" rows="3">SessionExpiredException 핸들러 추가 → /session-expired 리다이렉트 처리</textarea>
+                            <label class="block text-xs font-bold text-intra-text/70 mb-1">적용된 해결방안 (좌측 AI 1안/2안 참고 가능)</label>
+                            <textarea class="w-full border border-intra-border rounded-[3px] p-3 text-sm outline-none focus:border-intra-primary mb-4" rows="4">1안에 따라 SessionExpiredException 핸들러 추가 및 /session-expired 리다이렉트 처리 로직 구현 완료.</textarea>
 
                             <label class="block text-xs font-bold text-intra-text/70 mb-1">오류 발생 위치 및 코드</label>
                             <input type="text" class="w-full border border-intra-border rounded-[3px] p-2 text-sm outline-none focus:border-intra-primary mb-2" value="com.example.auth.SessionFilter / line 142" />
-                            <input type="text" class="w-full border border-intra-border rounded-[3px] p-2 text-sm outline-none focus:border-intra-primary" value="HTTP 500" />
                         </div>
                     </div>
                 </div>
             </div>
         `;
 
-        const buildSimilarSearch = () => `
-            <div class="p-6 max-w-6xl mx-auto pb-32 overflow-y-auto">
-                <div class="flex items-center text-sm text-intra-text/70 mb-4">
-                    <span class="cursor-pointer hover:text-intra-primary" data-action="nav" data-view="list">작업폴더 목록</span> ❯ 
-                    <span>신규 요청 등록</span> ❯ 
-                    <span class="font-bold text-intra-text">타시스템 적용 검증</span>
+        // --- READ-ONLY NOTE DETAIL VIEW (Clean Presentation without AI boxes) ---
+        const buildNoteDetailView = () => `
+            <div class="p-6 max-w-5xl mx-auto pb-32 overflow-y-auto">
+                <div class="flex items-center text-sm text-intra-text/70 mb-6">
+                    <span class="cursor-pointer hover:text-intra-primary" data-action="nav" data-view="list">작업목록</span> ❯ 
+                    <span class="font-bold text-intra-text">작업노트 상세 조회</span>
                 </div>
-                <div class="flex space-x-3 mt-8">
-                    <button data-action="nav" data-view="list" class="px-6 py-2.5 bg-intra-primary text-white rounded-[5px] font-medium hover:bg-intra-primaryDark transition text-sm">확인 완료</button>
+                
+                <!-- Finalized Content Header -->
+                <div class="bg-white border border-intra-border rounded-t-[5px] p-6 shadow-sm border-b-0 relative">
+                    <div class="absolute top-6 right-6">
+                        <button data-action="nav" data-view="note_create_split" class="px-3 py-1.5 border border-intra-border bg-gray-50 text-xs font-bold text-intra-text rounded-[3px] hover:bg-gray-100 transition">✏️ 수정 모드</button>
+                    </div>
+                    <span class="px-2 py-1 rounded-[5px] text-xs font-bold bg-red-100 text-red-700 mb-3 inline-block">🔴 작업중</span>
+                    <h1 class="text-2xl font-bold text-intra-text mb-4">세션 만료 예외 처리 로직 추가</h1>
+                    
+                    <div class="grid grid-cols-4 gap-4 text-sm bg-gray-50 p-4 rounded-[5px] border border-intra-border">
+                        <div><span class="block text-xs font-bold text-intra-text/60 mb-1">요청기간</span><span class="font-mono">26.04.18 ~ 04.20</span></div>
+                        <div><span class="block text-xs font-bold text-intra-text/60 mb-1">예상/실제 공수</span><span class="font-bold">2h / <span class="text-intra-primary">2.5h</span></span></div>
+                        <div><span class="block text-xs font-bold text-intra-text/60 mb-1">오류 위치</span><span class="font-mono text-xs">SessionFilter:142</span></div>
+                        <div><span class="block text-xs font-bold text-intra-text/60 mb-1">담당자</span><span class="font-bold">김개발</span></div>
+                    </div>
                 </div>
+
+                <!-- Finalized Content Body (Manual Input) -->
+                <div class="bg-white border border-intra-border rounded-b-[5px] p-6 shadow-sm mb-8">
+                    <div class="mb-6">
+                        <h3 class="text-sm font-bold border-l-[3px] border-intra-primary pl-2 mb-2 text-intra-text">개발 원인 분석 내용</h3>
+                        <div class="bg-gray-50 p-4 rounded text-sm text-intra-text leading-relaxed">
+                            SessionExpiredException 핸들러 부재로 인한 예외 반환 확인됨.
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold border-l-[3px] border-intra-primary pl-2 mb-2 text-intra-text">적용된 해결 방안</h3>
+                        <div class="bg-gray-50 p-4 rounded text-sm text-intra-text leading-relaxed">
+                            1안에 따라 SessionExpiredException 핸들러 추가 및 /session-expired 리다이렉트 처리 로직 구현 완료.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Tabs (FR-06 / FR-09) -->
+                <div class="flex mb-6 border-b border-intra-border">
+                    <button data-action="set" data-key="detailTab" data-val="answer" class="pb-3 px-6 text-lg font-bold transition border-b-0 ${state.detailTab === 'answer' ? 'border-t-[3px] border-t-intra-primary bg-transparent text-intra-primary' : 'border-t-[3px] border-t-transparent text-intra-text hover:text-intra-primary'}">
+                    답변 내용 ${getBadge('06')}
+                    </button>
+                    <button data-action="set" data-key="detailTab" data-val="manual" class="pb-3 px-6 text-lg font-bold transition border-b-0 ${state.detailTab === 'manual' ? 'border-t-[3px] border-t-intra-primary bg-transparent text-intra-primary' : 'border-t-[3px] border-t-transparent text-intra-text hover:text-intra-primary'}">
+                    매뉴얼 반영 ${getBadge('09')}
+                    </button>
+                </div>
+
+                ${state.detailTab === 'answer' ? `
+                    <div class="flex mb-[-1px] relative z-10">
+                        <button data-action="set" data-key="answerType" data-val="tech" class="px-6 py-3 font-bold text-sm transition border border-b-0 border-intra-border ${state.answerType === 'tech' ? 'bg-intra-primary text-white border-t-[3px] border-t-intra-primaryDark' : 'bg-[#f8f9fa] text-intra-text hover:bg-gray-100 border-t-[3px] border-t-transparent'}">개발 답변 (기술용)</button>
+                        <button data-action="set" data-key="answerType" data-val="easy" class="px-6 py-3 font-bold text-sm transition border border-l-0 border-b-0 border-intra-border ${state.answerType === 'easy' ? 'bg-intra-primary text-white border-t-[3px] border-t-intra-primaryDark' : 'bg-[#f8f9fa] text-intra-text hover:bg-gray-100 border-t-[3px] border-t-transparent'}">담당자 답변 (쉬운 언어)</button>
+                    </div>
+
+                    ${state.answerType === 'tech' ? `
+                        <div class="bg-white border border-t-0 border-intra-border p-8 min-h-[300px] text-sm font-mono text-intra-text space-y-4 shadow-sm">
+                        <p># 원인: 세션 만료 예외 처리 누락으로 인한 500 오류</p>
+                        <p>1. AuthInterceptor.java 수정<br/>  - handleTokenExpiry() 메소드 추가<br/>  - Response Code 401 명시적 반환 처리</p>
+                        </div>
+                    ` : `
+                        <div class="bg-white border border-t-0 border-intra-border p-8 shadow-sm">
+                            <div class="flex justify-between items-center mb-6 pb-2 border-b border-gray-100">
+                                <span class="text-lg font-bold text-intra-text">담당자 답변 (쉬운 언어 버전)</span>
+                                <span class="px-3 py-1 bg-[#e8f0fe] text-intra-primary rounded-[5px] text-xs font-bold flex items-center">✨ AI 초안 · 검토 필요</span>
+                            </div>
+                            <div class="space-y-6 text-sm text-intra-text">
+                                <p>안녕하세요. 요청하신 로그인 세션 오류 건에 대한 처리 결과를 안내드립니다.</p>
+                                <div>
+                                    <h4 class="font-bold text-intra-primary flex items-center mb-2"><span class="w-2 h-2 bg-intra-primary mr-2 rounded-sm"></span> 어떻게 수정되었나요?</h4>
+                                    <p class="pl-4 bg-gray-50 p-3 border-l-[3px] border-intra-border">세션이 만료되면 오류 대신 로그인 화면으로 자동 이동하도록 수정했습니다.</p>
+                                </div>
+                            </div>
+                            <div class="mt-8 flex space-x-3">
+                                <button class="px-6 py-2.5 bg-intra-primary text-white font-bold rounded-[5px] hover:bg-intra-primaryDark transition">답변 확정 및 발송</button>
+                            </div>
+                        </div>
+                    `}
+                ` : `
+                    <div class="bg-[#fff3e0] border border-[#ffe0b2] rounded-[5px] p-4 flex items-start text-[#ff6200] text-sm shadow-sm">
+                        <p class="font-bold">⚠️ 수정된 내용과 연관된 매뉴얼 2건이 업데이트가 필요합니다.</p>
+                    </div>
+                `}
             </div>
         `;
 
-        const buildTaskForm = () => `<div><!-- Legacy Form, replaced conceptually by split view for editing --></div>`;
-        const buildNoteCreate = () => `<div><!-- Legacy View, replaced by split view --></div>`;
-        const buildFolderDetail = () => `<div><!-- Legacy View, replaced by Accordion in List --></div>`;
-
         const buildMyTasks = () => {
-            // New columns: 대학구분(univ), 요청유형(type), 요청기간(period), 예상(estTime), 실제(actTime), 담당자(author), 상태(status)
+            const filteredTasks = state.taskFilter === '전체' ? MOCK_MY_TASKS : MOCK_MY_TASKS.filter(t => state.taskFilter === '지연' ? t.isOverdue : t.status === state.taskFilter);
             return `
             <div class="p-6 max-w-7xl mx-auto pb-32 overflow-y-auto h-full">
                 <div class="mb-4">
@@ -467,16 +556,16 @@
                     <p class="text-sm text-intra-text/80">ℹ️ 내가 담당하는 작업노트들의 세부 공수 및 진행 상태를 모니터링합니다.</p>
                 </div>
 
-                <div class="grid grid-cols-4 gap-4 mb-6">
-                    <div class="bg-white border border-intra-border rounded-[5px] p-5 shadow-none"><div class="text-intra-text font-bold mb-1 text-sm">전체 할당 작업</div><div class="text-3xl font-bold text-intra-primary">6</div></div>
-                </div>
-
-                <div class="bg-white border border-intra-border rounded-[5px] shadow-none overflow-hidden">
-                    <div class="p-4 border-b border-intra-border flex items-center bg-[#f8f9fa]">
-                        <span class="font-bold text-intra-text mr-4">상태 필터:</span>
-                        <select class="border border-intra-border rounded p-1.5 text-sm outline-none">
-                            <option>전체보기</option><option>검토중</option><option>작업중</option><option>검수중</option><option>작업완료</option>
-                        </select>
+                <div class="bg-white border border-intra-border rounded-[5px] shadow-none overflow-hidden mt-6">
+                    <div class="p-4 border-b border-intra-border flex items-center justify-between bg-[#f8f9fa]">
+                        <div class="flex items-center space-x-4">
+                            <span class="font-bold text-intra-text">상태 필터:</span>
+                            <div class="flex bg-white border border-intra-border p-1 rounded-[5px]">
+                                ${['전체', '검토중', '작업중', '검수중', '작업완료'].map(f => `
+                                    <button data-action="set" data-key="taskFilter" data-val="${f}" class="px-4 py-1 text-sm font-bold rounded-[3px] transition ${state.taskFilter === f ? 'bg-intra-primary text-white' : 'text-intra-text hover:bg-gray-100'}">${f}</button>
+                                `).join('')}
+                            </div>
+                        </div>
                     </div>
                     <table class="w-full text-left text-sm">
                         <thead class="bg-intra-tableHead text-intra-text border-b border-intra-border">
@@ -492,8 +581,8 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            ${MOCK_MY_TASKS.map(task => `
-                                <tr data-action="nav" data-view="note_split_view" class="hover:bg-[#f1f8fc] transition cursor-pointer">
+                            ${filteredTasks.map(task => `
+                                <tr data-action="nav" data-view="note_detail_view" class="hover:bg-[#f1f8fc] transition cursor-pointer">
                                     <td class="px-4 py-4 font-bold text-intra-primary">${task.title}</td>
                                     <td class="px-4 py-4 text-center text-xs">${task.univ}</td>
                                     <td class="px-4 py-4 text-center"><span class="px-2 py-1 bg-gray-100 rounded-[3px] text-[10px]">${task.type}</span></td>
@@ -535,8 +624,6 @@
             </div>
         `;
 
-        const buildNoteDetail = () => `<div><!-- Note Detail view implementation omitted for brevity, merged into split view logic mostly --></div>`;
-
         // --- 5. Main Render Function ---
         const render = () => {
             const app = document.getElementById('app');
@@ -545,13 +632,13 @@
             switch(state.view) {
                 case 'list': mainContent = buildListView(); break;
                 case 'similar_search': mainContent = buildSimilarSearch(); break;
-                case 'folder_detail': mainContent = buildFolderDetail(); break;
-                case 'task_form': mainContent = buildTaskForm(); break;
-                case 'note_create': mainContent = buildNoteCreate(); break;
-                case 'note_detail': mainContent = buildNoteDetail(); break;
+                case 'folder_detail': mainContent = buildFolderDetail(); break; // Kept for fallback, but workflow favors accordion
+                case 'task_form': mainContent = buildTaskForm(); break; // Kept for legacy
+                case 'note_create': mainContent = buildNoteCreate(); break; // Kept for legacy
+                case 'note_create_split': mainContent = buildNoteCreateSplit(); break;
+                case 'note_detail_view': mainContent = buildNoteDetailView(); break;
                 case 'my_tasks': mainContent = buildMyTasks(); break;
                 case 'dashboard': mainContent = buildDashboard(); break;
-                case 'note_split_view': mainContent = buildNoteSplitView(); break;
             }
 
             app.innerHTML = `
