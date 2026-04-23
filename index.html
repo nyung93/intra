@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>내부 업무 요청 게시판 프로토타입 v1.1</title>
+    <title>내부 업무 요청 게시판 프로토타입 v1.2</title>
     
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,6 +19,30 @@
         /* 기본 웹 폰트 적용 */
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         body { font-family: 'Pretendard', -apple-system, sans-serif; }
+        
+        /* 도넛 차트 CSS */
+        .donut-chart {
+            background: conic-gradient(
+                #2563eb 0% 29%, 
+                #60a5fa 29% 50%, 
+                #93c5fd 50% 67%, 
+                #f97316 67% 80%, 
+                #eab308 80% 90%, 
+                #cbd5e1 90% 100%
+            );
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .donut-inner {
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -27,7 +51,7 @@
     <script type="text/babel">
         const { useState } = React;
 
-        // --- SVG 아이콘 컴포넌트 (Lucide-react 대체) ---
+        // --- SVG 아이콘 컴포넌트 ---
         const Search = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>;
         const Plus = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>;
         const ChevronRight = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"></path></svg>;
@@ -40,6 +64,8 @@
         const UploadCloud = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M12 12v9"></path><path d="m16 16-4-4-4 4"></path></svg>;
         const ArrowRight = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>;
         const AlertTriangle = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>;
+        const Download = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+        const Filter = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>;
 
         // --- MOCK DATA ---
         const MOCK_FOLDERS = [
@@ -50,6 +76,17 @@
             { id: '005', title: '[대시보드] KPI 위젯 오류 수정', type: '오류수정', date: '2025-04-14', author: '김개발', status: '진행중' },
         ];
 
+        const MOCK_MY_TASKS = [
+            { id: '001', title: '[로그인] 세션 만료 오류 수정', sys: '통합포털', date: '04-18', due: '04-21', hours: '6h', status: '진행중', progress: 60, statusColor: 'bg-amber-100 text-amber-700' },
+            { id: '002', title: '[수강신청] 취소버튼 500 오류', sys: '학사시스템', date: '04-17', due: '04-20', hours: '4h', status: '진행중', progress: 30, statusColor: 'bg-amber-100 text-amber-700' },
+            { id: '003', title: '[성적조회] PDF 출력 레이아웃', sys: '학사시스템', date: '04-15', due: '04-18', hours: '3h', status: '완료', progress: 100, statusColor: 'bg-green-100 text-green-700' },
+            { id: '004', title: '[공지사항] 첨부파일 업로드 오류', sys: '통합포털', date: '04-14', due: '04-17', hours: '5h', status: '지연', progress: 80, statusColor: 'bg-red-100 text-red-700', isOverdue: true },
+            { id: '005', title: '[대시보드] KPI 위젯 미표시', sys: '관리자시스템', date: '04-13', due: '04-16', hours: '2h', status: '완료', progress: 100, statusColor: 'bg-green-100 text-green-700' },
+            { id: '006', title: '[회원관리] 탈퇴 사유 항목 추가', sys: 'CRM', date: '04-12', due: '04-20', hours: '8h', status: '진행중', progress: 15, statusColor: 'bg-amber-100 text-amber-700' },
+            { id: '007', title: '[권한관리] 조교 메뉴 접근 오류', sys: '통합포털', date: '04-10', due: '04-13', hours: '3h', status: '완료', progress: 100, statusColor: 'bg-green-100 text-green-700' },
+            { id: '008', title: '[성적입력] 이의신청 기간 설정', sys: '학사시스템', date: '04-09', due: '04-25', hours: '10h', status: '대기', progress: 0, statusColor: 'bg-slate-100 text-slate-700' },
+        ];
+
         // --- 공통 배지 컴포넌트 ---
         const FRBadge = ({ code }) => (
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 ml-2 border border-blue-200 shadow-sm">
@@ -58,806 +95,908 @@
         );
 
         function InternalRequestBoard() {
-            // 화면 라우팅 상태: 'list' -> 'similar_search' -> 'folder_detail' -> 'note_create' -> 'note_detail'
+            // 화면 라우팅 상태: 'list' -> 'similar_search' -> 'folder_detail' -> 'task_form' -> 'note_create' -> 'note_detail', plus 'my_tasks', 'dashboard'
             const [view, setView] = useState('list'); 
             
             // 기능 상태
             const [showFr01Panel, setShowFr01Panel] = useState(false);
-            const [createTab, setCreateTab] = useState('cause'); // 'cause'(FR-03), 'error'(FR-04), 'attach'(FR-05), 'system'(FR-07)
-            const [detailTab, setDetailTab] = useState('answer'); // 'answer'(FR-06), 'manual'(FR-09)
-            const [answerType, setAnswerType] = useState('easy'); // 'tech', 'easy'
+            const [createTab, setCreateTab] = useState('cause'); 
+            const [detailTab, setDetailTab] = useState('answer'); 
+            const [answerType, setAnswerType] = useState('easy'); 
 
-            // --- 화면 1. [FR-01] 작업폴더 목록 & 자동 타이틀 생성 패널 ---
+            // 탭 및 필터 클릭 처리를 위한 상태 추가
+            const [solutionTab, setSolutionTab] = useState('1안'); // 1안/2안 탭
+            const [taskFilter, setTaskFilter] = useState('전체');  // 나의 작업 필터
+            const [dateFilter, setDateFilter] = useState('이번달'); // 대시보드 기간 필터
+            const [folderFilter, setFolderFilter] = useState('전체'); // 폴더 목록 필터
+
+            // ==========================================
+            // [화면 1] 작업폴더 목록 & 자동 타이틀 생성
+            // ==========================================
             const FolderListView = () => (
                 <div className="flex flex-col h-full relative">
-                <div className="p-6 flex-1">
-                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6 flex items-center space-x-4">
-                    <div className="flex-1 relative">
-                        <Search className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
-                        <input type="text" placeholder="요청 내용으로 검색..." className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
-                    </div>
-                    <button className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition">검색</button>
-                    <button 
-                        onClick={() => setShowFr01Panel(true)}
-                        className="px-6 py-2 bg-blue-500 text-white rounded-md font-medium hover:bg-blue-600 flex items-center shadow-sm transition"
-                    >
-                        <Plus className="w-4 h-4 mr-1" /> 새 요청 등록
-                    </button>
-                    <div className="flex bg-slate-100 p-1 rounded-md ml-4">
-                        <button className="px-4 py-1.5 bg-white text-slate-800 text-sm font-medium rounded shadow-sm transition">전체</button>
-                        <button className="px-4 py-1.5 text-slate-600 text-sm font-medium rounded hover:bg-slate-200 transition">진행중</button>
-                    </div>
-                    </div>
-
-                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
-                        <tr>
-                            <th className="px-6 py-3 font-medium">No.</th>
-                            <th className="px-6 py-3 font-medium">폴더 타이틀</th>
-                            <th className="px-6 py-3 font-medium">요청 유형</th>
-                            <th className="px-6 py-3 font-medium">요청일</th>
-                            <th className="px-6 py-3 font-medium">담당자</th>
-                            <th className="px-6 py-3 font-medium">상태</th>
-                        </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                        {MOCK_FOLDERS.map((f) => (
-                            <tr key={f.id} className="hover:bg-blue-50 cursor-pointer transition" onClick={() => setView('folder_detail')}>
-                            <td className="px-6 py-4 text-slate-400">{f.id}</td>
-                            <td className="px-6 py-4 font-medium text-blue-700">{f.title}</td>
-                            <td className="px-6 py-4">
-                                <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium border border-blue-100">{f.type}</span>
-                            </td>
-                            <td className="px-6 py-4 text-slate-500">{f.date}</td>
-                            <td className="px-6 py-4 text-slate-800">{f.author}</td>
-                            <td className="px-6 py-4">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                f.status === '진행중' ? 'bg-blue-100 text-blue-700' :
-                                f.status === '완료' ? 'bg-green-100 text-green-700' :
-                                f.status === '검토중' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
-                                }`}>{f.status}</span>
-                            </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                    </div>
-                </div>
-
-                {/* FR-01: 자동 타이틀 생성 패널 (바텀 시트) */}
-                {showFr01Panel && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border-t border-slate-200 transform transition-transform z-20">
-                    <div className="bg-blue-600 text-white px-6 py-3 flex justify-between items-center">
-                        <h3 className="font-medium flex items-center"><Wand2 className="w-4 h-4 mr-2" /> 자동 타이틀 생성 미리보기</h3>
-                        <FRBadge code="FR-01" />
-                    </div>
-                    <div className="p-6">
-                        <label className="block text-sm text-slate-600 mb-2">요청 내용 입력</label>
-                        <textarea 
-                        className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 mb-4 h-20"
-                        defaultValue="로그인 화면에서 세션 만료 후 새로고침 시 오류 페이지로 이동되는 문제 발생"
-                        ></textarea>
-                        
-                        <label className="block text-sm text-slate-600 mb-2">AI 자동 생성 타이틀 후보</label>
-                        <div className="flex space-x-6 mb-6">
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="title" defaultChecked className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                            <span className="text-slate-800 font-medium">[로그인] 세션 만료 후 새로고침 오류 수정</span>
-                        </label>
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="title" className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                            <span className="text-slate-800 font-medium">[인증] 세션 처리 오류 수정 요청</span>
-                        </label>
+                    <div className="p-6 flex-1">
+                        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-6 flex items-center space-x-4">
+                            <div className="flex-1 relative">
+                                <Search className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
+                                <input type="text" placeholder="요청 내용으로 검색..." className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                            </div>
+                            <button className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition">검색</button>
+                            <button 
+                                onClick={() => setShowFr01Panel(true)}
+                                className="px-6 py-2 bg-blue-500 text-white rounded-md font-medium hover:bg-blue-600 flex items-center shadow-sm transition"
+                            >
+                                <Plus className="w-4 h-4 mr-1" /> 새 요청 등록
+                            </button>
+                            <div className="flex bg-slate-100 p-1 rounded-md ml-4">
+                                {['전체', '진행중'].map(f => (
+                                    <button 
+                                        key={f} 
+                                        onClick={() => setFolderFilter(f)} 
+                                        className={`px-4 py-1.5 text-sm font-medium rounded transition ${folderFilter === f ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                                    >
+                                        {f}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        
-                        <div className="flex space-x-3">
-                        <button 
-                            onClick={() => { setShowFr01Panel(false); setView('similar_search'); }} 
-                            className="px-6 py-2.5 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition"
-                        >이 타이틀로 확정</button>
-                        <button onClick={() => setShowFr01Panel(false)} className="px-6 py-2.5 border border-slate-300 text-slate-600 rounded-md hover:bg-slate-50 transition">직접 입력</button>
+
+                        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-6 py-3 font-medium">No.</th>
+                                    <th className="px-6 py-3 font-medium">폴더 타이틀</th>
+                                    <th className="px-6 py-3 font-medium">요청 유형</th>
+                                    <th className="px-6 py-3 font-medium">요청일</th>
+                                    <th className="px-6 py-3 font-medium">담당자</th>
+                                    <th className="px-6 py-3 font-medium">상태</th>
+                                </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                {MOCK_FOLDERS.map((f) => (
+                                    <tr key={f.id} className="hover:bg-blue-50 cursor-pointer transition" onClick={() => setView('folder_detail')}>
+                                    <td className="px-6 py-4 text-slate-400">{f.id}</td>
+                                    <td className="px-6 py-4 font-medium text-blue-700">{f.title}</td>
+                                    <td className="px-6 py-4">
+                                        <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium border border-blue-100">{f.type}</span>
+                                    </td>
+                                    <td className="px-6 py-4 text-slate-500">{f.date}</td>
+                                    <td className="px-6 py-4 text-slate-800">{f.author}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        f.status === '진행중' ? 'bg-blue-100 text-blue-700' :
+                                        f.status === '완료' ? 'bg-green-100 text-green-700' :
+                                        f.status === '검토중' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
+                                        }`}>{f.status}</span>
+                                    </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    </div>
-                )}
+
+                    {showFr01Panel && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border-t border-slate-200 transform transition-transform z-20">
+                            <div className="bg-blue-600 text-white px-6 py-3 flex justify-between items-center">
+                                <h3 className="font-medium flex items-center"><Wand2 className="w-4 h-4 mr-2" /> 자동 타이틀 생성 미리보기</h3>
+                                <FRBadge code="FR-01" />
+                            </div>
+                            <div className="p-6">
+                                <label className="block text-sm text-slate-600 mb-2">요청 내용 입력</label>
+                                <textarea 
+                                className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 mb-4 h-20"
+                                defaultValue="로그인 화면에서 세션 만료 후 새로고침 시 오류 페이지로 이동되는 문제 발생"
+                                ></textarea>
+                                
+                                <label className="block text-sm text-slate-600 mb-2">AI 자동 생성 타이틀 후보</label>
+                                <div className="flex space-x-6 mb-6">
+                                <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input type="radio" name="title" defaultChecked className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                                    <span className="text-slate-800 font-medium">[로그인] 세션 만료 후 새로고침 오류 수정</span>
+                                </label>
+                                <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input type="radio" name="title" className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                                    <span className="text-slate-800 font-medium">[인증] 세션 처리 오류 수정 요청</span>
+                                </label>
+                                </div>
+                                
+                                <div className="flex space-x-3">
+                                <button 
+                                    onClick={() => { setShowFr01Panel(false); setView('similar_search'); }} 
+                                    className="px-6 py-2.5 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition"
+                                >이 타이틀로 확정</button>
+                                <button onClick={() => setShowFr01Panel(false)} className="px-6 py-2.5 border border-slate-300 text-slate-600 rounded-md hover:bg-slate-50 transition">직접 입력</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
 
-            // --- 화면 1.5 [FR-08] 신규 요청 등록 > 유사 이력 자동 탐색 ---
+            // ==========================================
+            // [화면 1.5] 신규 요청 등록 > 유사 이력 탐색
+            // ==========================================
             const SimilarSearchView = () => (
                 <div className="p-6 max-w-6xl mx-auto">
-                <div className="flex items-center text-sm text-slate-500 mb-6">
-                    <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
-                    <span>신규 요청 등록</span> <ChevronRight className="w-4 h-4 mx-1" />
-                    <span className="font-semibold text-slate-800">타시스템 적용 검증</span>
-                </div>
-
-                <div className="flex items-center mb-4">
-                    <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3">유사 요청 자동 탐색 결과</h2>
-                    <span className="ml-3 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">자동 실행됨</span>
-                    <FRBadge code="FR-08" />
-                </div>
-
-                <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4 mb-6">
-                    <div className="flex items-center text-sm mb-2">
-                    <span className="text-slate-600 mr-3">검색 키워드 :</span>
-                    <div className="flex space-x-2">
-                        <span className="px-3 py-1 bg-white border border-blue-200 text-blue-700 rounded-full text-xs">세션 만료</span>
-                        <span className="px-3 py-1 bg-white border border-blue-200 text-blue-700 rounded-full text-xs">로그인 오류</span>
-                        <span className="px-3 py-1 bg-white border border-blue-200 text-blue-700 rounded-full text-xs">redirect 처리</span>
+                    <div className="flex items-center text-sm text-slate-500 mb-6">
+                        <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span>신규 요청 등록</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="font-semibold text-slate-800">타시스템 적용 검증</span>
                     </div>
-                    </div>
-                    <p className="text-sm text-blue-800 font-medium">3건의 유사 요청 이력이 발견되었습니다.</p>
-                </div>
 
-                <div className="space-y-4 mb-8">
-                    {[
-                    { score: 92, id: 'WRK-0241', sys: '구매관리 시스템', title: '[구매관리] 세션 만료 redirect 오류 수정', date: '2024-11-10' },
-                    { score: 87, id: 'WRK-0189', sys: '인사관리 시스템', title: '[인사관리] 로그인 세션 처리 오류', date: '2024-08-22' },
-                    { score: 78, id: 'WRK-0312', sys: '공통 모듈', title: '[공통] 인증 필터 500 오류 수정', date: '2025-01-05' }
-                    ].map((item, idx) => (
-                    <div key={idx} className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between hover:border-blue-300 transition">
-                        <div className="flex items-center">
-                        <div className="flex flex-col items-center justify-center w-16 border-r border-slate-100 mr-4 pr-4">
-                            <span className="text-2xl font-bold text-green-600">{item.score}</span>
-                            <span className="text-[10px] text-slate-400 mt-1">% 유사도</span>
-                        </div>
-                        <div>
-                            <div className="flex items-center text-xs text-slate-400 mb-1">
-                            <span>{item.id}</span> <span className="mx-2">·</span> <span>{item.sys}</span>
-                            </div>
-                            <h4 className="text-base font-medium text-blue-700 hover:underline cursor-pointer">{item.title}</h4>
-                            <div className="flex items-center text-xs text-slate-500 mt-2">
-                            <span>완료일: {item.date}</span>
-                            <span className="ml-3 px-2 py-0.5 bg-green-50 text-green-600 border border-green-200 rounded text-[10px]">완료</span>
+                    <div className="flex items-center mb-4">
+                        <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3">유사 요청 자동 탐색 결과</h2>
+                        <span className="ml-3 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">자동 실행됨</span>
+                        <FRBadge code="FR-08" />
+                    </div>
+
+                    <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4 mb-6">
+                        <div className="flex items-center text-sm mb-2">
+                            <span className="text-slate-600 mr-3">검색 키워드 :</span>
+                            <div className="flex space-x-2">
+                                <span className="px-3 py-1 bg-white border border-blue-200 text-blue-700 rounded-full text-xs">세션 만료</span>
+                                <span className="px-3 py-1 bg-white border border-blue-200 text-blue-700 rounded-full text-xs">로그인 오류</span>
+                                <span className="px-3 py-1 bg-white border border-blue-200 text-blue-700 rounded-full text-xs">redirect 처리</span>
                             </div>
                         </div>
-                        </div>
-                        <div className="flex space-x-2">
-                        <button className="px-4 py-2 border border-blue-600 text-blue-600 text-sm font-medium rounded-md hover:bg-blue-50 transition">작업노트 참조</button>
-                        <button className="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-md hover:bg-slate-200 transition">연결</button>
-                        </div>
+                        <p className="text-sm text-blue-800 font-medium">3건의 유사 요청 이력이 발견되었습니다.</p>
                     </div>
-                    ))}
-                </div>
 
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-start">
-                    <CheckSquare className="w-5 h-5 text-green-600 mr-2 shrink-0 mt-0.5" />
-                    <p className="text-sm text-green-800">
-                    WRK-0241 (구매관리 세션 오류)의 처리 방식을 현재 요청에 참조할 수 있습니다.<br/>
-                    '작업노트 참조' 버튼으로 해결 방안을 불러올 수 있습니다.
-                    </p>
-                </div>
+                    <div className="space-y-4 mb-8">
+                        {[
+                        { score: 92, id: 'WRK-0241', sys: '구매관리 시스템', title: '[구매관리] 세션 만료 redirect 오류 수정', date: '2024-11-10' },
+                        { score: 87, id: 'WRK-0189', sys: '인사관리 시스템', title: '[인사관리] 로그인 세션 처리 오류', date: '2024-08-22' },
+                        { score: 78, id: 'WRK-0312', sys: '공통 모듈', title: '[공통] 인증 필터 500 오류 수정', date: '2025-01-05' }
+                        ].map((item, idx) => (
+                        <div key={idx} className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between hover:border-blue-300 transition">
+                            <div className="flex items-center">
+                            <div className="flex flex-col items-center justify-center w-16 border-r border-slate-100 mr-4 pr-4">
+                                <span className="text-2xl font-bold text-green-600">{item.score}</span>
+                                <span className="text-[10px] text-slate-400 mt-1">% 유사도</span>
+                            </div>
+                            <div>
+                                <div className="flex items-center text-xs text-slate-400 mb-1">
+                                <span>{item.id}</span> <span className="mx-2">·</span> <span>{item.sys}</span>
+                                </div>
+                                <h4 className="text-base font-medium text-blue-700 hover:underline cursor-pointer">{item.title}</h4>
+                                <div className="flex items-center text-xs text-slate-500 mt-2">
+                                <span>완료일: {item.date}</span>
+                                <span className="ml-3 px-2 py-0.5 bg-green-50 text-green-600 border border-green-200 rounded text-[10px]">완료</span>
+                                </div>
+                            </div>
+                            </div>
+                            <div className="flex space-x-2">
+                            <button className="px-4 py-2 border border-blue-600 text-blue-600 text-sm font-medium rounded-md hover:bg-blue-50 transition">작업노트 참조</button>
+                            <button className="px-4 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-md hover:bg-slate-200 transition">연결</button>
+                            </div>
+                        </div>
+                        ))}
+                    </div>
 
-                <div className="flex space-x-3">
-                    <button onClick={() => setView('folder_detail')} className="px-6 py-2.5 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 shadow-sm transition">검증 결과 확인 완료</button>
-                    <button onClick={() => setView('folder_detail')} className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-md font-medium hover:bg-slate-200 transition">건너뛰기</button>
-                </div>
+                    <div className="flex space-x-3">
+                        <button onClick={() => setView('folder_detail')} className="px-6 py-2.5 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 shadow-sm transition">검증 결과 확인 완료</button>
+                        <button onClick={() => setView('folder_detail')} className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-md font-medium hover:bg-slate-200 transition">건너뛰기</button>
+                    </div>
                 </div>
             );
 
-            // --- 화면 2. [FR-02] 작업폴더 상세 > 요정 내용 1차 정리 ---
+            // ==========================================
+            // [화면 2] 작업폴더 상세 > 요청 내용 1차 정리
+            // ==========================================
             const FolderDetailView = () => (
                 <div className="p-6 max-w-6xl mx-auto">
-                <div className="flex items-center text-sm text-slate-500 mb-6">
-                    <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
-                    <span className="cursor-pointer hover:text-blue-600 transition">작업폴더 상세</span> <ChevronRight className="w-4 h-4 mx-1" />
-                    <span className="font-semibold text-slate-800">요청내용 1차 정리</span>
-                </div>
-
-                <div className="flex items-center mb-4">
-                    <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3">원본 요청 내용</h2>
-                    <span className="ml-3 px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">접수됨</span>
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 mb-8 text-sm text-slate-700 whitespace-pre-line leading-relaxed">
-                    로그인 화면 세션 만료 오류 건: 사용자가 30분 이상 비활동 후 화면을 새로고침하면 빈 화면 또는 500 오류 페이지가 출력됩니다. 특히 IE 환경에서 자주 발생합니다. 
-                    빠른 조치가 필요합니다. (담당: 김담당 / 2025-04-18)
-                </div>
-
-                <div className="flex items-center mb-4">
-                    <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3">AI 1차 분석 결과</h2>
-                    <span className="ml-3 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium flex items-center"><Wand2 className="w-3 h-3 mr-1" />자동생성</span>
-                    <FRBadge code="FR-02" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                    <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-                    <h3 className="text-sm font-semibold text-slate-500 mb-4">요청 유형 분류</h3>
-                    <div className="space-y-3">
-                        <label className="flex items-center space-x-3 cursor-pointer">
-                        <input type="radio" name="reqType" defaultChecked className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-slate-800 font-medium">오류수정 (Bug Fix)</span>
-                        </label>
-                        <label className="flex items-center space-x-3 cursor-pointer">
-                        <input type="radio" name="reqType" className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-slate-600">기능개선 (Enhancement)</span>
-                        </label>
-                        <label className="flex items-center space-x-3 cursor-pointer">
-                        <input type="radio" name="reqType" className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-slate-600">신규구축 (New Dev)</span>
-                        </label>
-                        <label className="flex items-center space-x-3 cursor-pointer">
-                        <input type="radio" name="reqType" className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-slate-600">문의 (Inquiry)</span>
-                        </label>
-                    </div>
+                    <div className="flex items-center text-sm text-slate-500 mb-6">
+                        <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="cursor-pointer hover:text-blue-600 transition">작업폴더 상세</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="font-semibold text-slate-800">요청내용 1차 정리</span>
                     </div>
 
-                    <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-                    <h3 className="text-sm font-semibold text-slate-500 mb-4">자동 분석 요약</h3>
-                    <ul className="text-sm text-slate-700 space-y-2.5">
-                        <li className="flex items-start"><span className="mr-2 text-slate-400">•</span> 영향 화면: 로그인 화면 (login.jsp)</li>
-                        <li className="flex items-start"><span className="mr-2 text-slate-400">•</span> 발생 환경: IE 브라우저, 세션 만료 상황</li>
-                        <li className="flex items-start"><span className="mr-2 text-slate-400">•</span> 오류 유형: 500 Internal Server Error</li>
-                        <li className="flex items-start"><span className="mr-2 text-slate-400">•</span> 긴급도: 높음 (사용자 직접 영향)</li>
-                    </ul>
+                    <div className="flex items-center mb-4">
+                        <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3">원본 요청 내용</h2>
+                        <span className="ml-3 px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">접수됨</span>
                     </div>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm mb-6">
-                    <h3 className="text-sm font-semibold text-slate-500 mb-3">영향 범위 (자동 탐지)</h3>
-                    <div className="flex space-x-2 mb-4">
-                    <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded text-xs font-medium">로그인 모듈</span>
-                    <span className="px-3 py-1 bg-purple-50 text-purple-600 border border-purple-100 rounded text-xs font-medium">세션 관리</span>
-                    <span className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded text-xs font-medium">공통 인증</span>
-                    <span className="px-3 py-1 bg-red-50 text-red-600 border border-red-100 rounded text-xs font-medium">IE 호환성</span>
-                    <button className="px-3 py-1 text-slate-400 text-xs font-medium hover:bg-slate-50 rounded border border-transparent transition">+ 태그 추가</button>
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 mb-8 text-sm text-slate-700 whitespace-pre-line leading-relaxed">
+                        로그인 화면 세션 만료 오류 건: 사용자가 30분 이상 비활동 후 화면을 새로고침하면 빈 화면 또는 500 오류 페이지가 출력됩니다. 특히 IE 환경에서 자주 발생합니다. 
+                        빠른 조치가 필요합니다. (담당: 김담당 / 2025-04-18)
                     </div>
-                    <label className="flex items-center space-x-2">
-                    <input type="checkbox" defaultChecked className="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
-                    <span className="text-sm text-slate-700 font-medium">분석 내용을 확인하였습니다 (담당자 검토 완료)</span>
-                    </label>
-                </div>
 
-                <div className="flex space-x-3">
-                    <button onClick={() => setView('note_create')} className="px-6 py-2.5 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 flex items-center shadow-sm transition">
-                    작업노트 작성으로 이동 <ArrowRight className="w-4 h-4 ml-2" />
-                    </button>
-                    <button className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-md font-medium hover:bg-slate-50 transition">내용 수정</button>
-                    <button className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-md font-medium hover:bg-slate-200 transition">재분석</button>
-                </div>
+                    <div className="flex items-center mb-4">
+                        <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3">AI 1차 분석 결과</h2>
+                        <span className="ml-3 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium flex items-center"><Wand2 className="w-3 h-3 mr-1" />자동생성</span>
+                        <FRBadge code="FR-02" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6 mb-6">
+                        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+                            <h3 className="text-sm font-semibold text-slate-500 mb-4">요청 유형 분류</h3>
+                            <div className="space-y-3">
+                                <label className="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="reqType" defaultChecked className="w-4 h-4 text-blue-600" />
+                                <span className="text-sm text-slate-800 font-medium">오류수정 (Bug Fix)</span>
+                                </label>
+                                <label className="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="reqType" className="w-4 h-4 text-blue-600" />
+                                <span className="text-sm text-slate-600">기능개선 (Enhancement)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+                            <h3 className="text-sm font-semibold text-slate-500 mb-4">자동 분석 요약</h3>
+                            <ul className="text-sm text-slate-700 space-y-2.5">
+                                <li className="flex items-start"><span className="mr-2 text-slate-400">•</span> 영향 화면: 로그인 화면 (login.jsp)</li>
+                                <li className="flex items-start"><span className="mr-2 text-slate-400">•</span> 발생 환경: IE 브라우저, 세션 만료 상황</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="flex space-x-3">
+                        <button onClick={() => setView('task_form')} className="px-6 py-2.5 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 flex items-center shadow-sm transition">
+                            작업노트 작성으로 이동 <ArrowRight className="w-4 h-4 ml-2" />
+                        </button>
+                        <button className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-md font-medium hover:bg-slate-50 transition">내용 수정</button>
+                    </div>
                 </div>
             );
 
-            // --- 화면 3. [FR-03,04,05,07] 작업노트 작성 (복합 탭) ---
+            // ==========================================
+            // [화면 2.5] 업무노트 작성 양식 (v1.2 신규 반영)
+            // ==========================================
+            const TaskNoteFormView = () => (
+                <div className="flex flex-col min-h-full relative">
+                    <div className="p-6 max-w-6xl mx-auto w-full pb-8">
+                        <div className="flex items-center text-sm text-slate-500 mb-6">
+                            <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
+                            <span className="font-semibold text-slate-800">작업노트 작성</span>
+                        </div>
+
+                        <div className="bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center mb-6 shadow-md">
+                            <h1 className="text-xl font-bold">업무노트 작성 양식</h1>
+                            <span className="px-3 py-1 bg-white/20 text-white text-xs font-bold rounded-full">신규작성</span>
+                        </div>
+
+                        <div className="space-y-8">
+                            {/* 1. 사용자 구분 */}
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-4 flex items-center">
+                                    1. 사용자 구분 <span className="ml-2 px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold border border-red-100 rounded">필수</span>
+                                </h3>
+                                <div className="flex space-x-6 pl-4">
+                                    <label className="flex items-center space-x-2 cursor-pointer"><input type="radio" name="userType" className="w-4 h-4 text-blue-600" /><span className="text-sm">관리자</span></label>
+                                    <label className="flex items-center space-x-2 cursor-pointer"><input type="radio" name="userType" className="w-4 h-4 text-blue-600" /><span className="text-sm">교수</span></label>
+                                    <label className="flex items-center space-x-2 cursor-pointer"><input type="radio" name="userType" defaultChecked className="w-4 h-4 text-blue-600" /><span className="text-sm">상담원</span></label>
+                                    <label className="flex items-center space-x-2 cursor-pointer"><input type="radio" name="userType" className="w-4 h-4 text-blue-600" /><span className="text-sm">조교</span></label>
+                                    <label className="flex items-center space-x-2 cursor-pointer"><input type="radio" name="userType" className="w-4 h-4 text-blue-600" /><span className="text-sm">학생</span></label>
+                                </div>
+                            </div>
+
+                            {/* 2. 메뉴 경로 */}
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-4 flex items-center">
+                                    2. 메뉴 경로 <span className="ml-2 px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-100 rounded">요청자 입력값 우선 반영</span>
+                                </h3>
+                                <div className="pl-4">
+                                    <label className="block text-xs text-slate-500 mb-2">시스템 내 메뉴 경로 (예: 학사관리 > 수강신청 > 수강취소)</label>
+                                    <input type="text" className="w-full border border-slate-300 rounded p-2.5 text-sm focus:ring-blue-500 mb-3" defaultValue="학사관리 > 수강신청 > 수강취소 신청" />
+                                    <div className="bg-blue-50 text-blue-700 text-xs p-2.5 rounded border border-blue-100 flex items-start">
+                                        <AlertCircle className="w-4 h-4 mr-1.5 shrink-0" />
+                                        요청자가 메뉴 경로를 직접 입력한 경우 해당 값을 그대로 반영합니다.
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. 요청 내용 */}
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-4">
+                                    3. 요청 내용 (개발자 전달용)
+                                </h3>
+                                <div className="pl-4 space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600 mb-2">요청 원문 <span className="text-red-500">*</span></label>
+                                        <textarea className="w-full border border-slate-200 bg-slate-50 rounded p-3 text-sm text-slate-700" rows="3" readOnly defaultValue="수강취소 신청 화면에서 취소 버튼 클릭 시 오류 페이지가 나타납니다. 특히 2학점 강의에서만 발생하며 오류 코드는 없습니다. (상담원 신고)"></textarea>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600 mb-2">개발자 전달 내용 (정리본) <span className="text-red-500">*</span></label>
+                                        <textarea className="w-full border border-slate-300 rounded p-3 text-sm focus:ring-blue-500" rows="4" defaultValue="· 현상: '수강취소 신청' 화면 > [취소] 버튼 클릭 시 500 오류 화면 전환&#13;&#10;· 발생 조건: 2학점 강의 한정 / 크롬·엣지 동일 재현&#13;&#10;· 영향 사용자: 수강취소를 시도하는 학생 전체&#13;&#10;· 참고: 3학점 강의는 정상 동작 확인됨 → 학점별 분기 로직 의심"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 4. 예상 소요시간 */}
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-4 flex items-center">
+                                    4. 예상 소요시간 (주니어 개발자 기준) <span className="ml-2 px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold border border-green-100 rounded">자동 계산</span>
+                                </h3>
+                                <div className="pl-4">
+                                    <div className="grid grid-cols-3 gap-4 mb-4">
+                                        <div className="border border-slate-200 bg-slate-50 rounded-lg p-4">
+                                            <div className="text-xs text-slate-500 font-medium mb-1">원인 분석</div>
+                                            <div className="text-xl font-bold text-blue-600">2h</div>
+                                        </div>
+                                        <div className="border border-slate-200 bg-slate-50 rounded-lg p-4">
+                                            <div className="text-xs text-slate-500 font-medium mb-1">코드 수정</div>
+                                            <div className="text-xl font-bold text-blue-600">3h</div>
+                                        </div>
+                                        <div className="border border-slate-200 bg-slate-50 rounded-lg p-4">
+                                            <div className="text-xs text-slate-500 font-medium mb-1">테스트 검증</div>
+                                            <div className="text-xl font-bold text-green-600">1h</div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm font-bold text-blue-800">
+                                        총 예상 소요시간: 6시간 (주니어 개발자 기준)
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 5. 요청기간 */}
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-4 flex items-center">
+                                    5. 요청기간 <span className="ml-2 px-2 py-0.5 bg-orange-50 text-orange-700 text-[10px] font-bold border border-orange-100 rounded">기본 3일 소요</span>
+                                </h3>
+                                <div className="pl-4">
+                                    <div className="grid grid-cols-2 gap-6 mb-4">
+                                        <div>
+                                            <label className="block text-xs text-slate-500 mb-2">요청일</label>
+                                            <input type="text" className="w-full border border-slate-200 bg-slate-50 rounded p-2.5 text-sm text-slate-700" readOnly defaultValue="2025-04-18" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-500 mb-2">완료 예정일 (기본 +3일)</label>
+                                            <input type="text" className="w-full border border-blue-300 rounded p-2.5 text-sm text-blue-700 font-bold focus:ring-blue-500" defaultValue="2025-04-21" />
+                                        </div>
+                                    </div>
+                                    <div className="bg-orange-50 text-orange-700 text-xs p-2.5 rounded border border-orange-100 mb-4 flex items-start">
+                                        <AlertTriangle className="w-4 h-4 mr-1.5 shrink-0" />
+                                        추가 일정이 필요한 경우 사유 입력 후 기간을 직접 조정하세요.
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-slate-500 mb-2">일정 연장 사유 (선택)</label>
+                                        <input type="text" className="w-full border border-slate-300 rounded p-2.5 text-sm focus:ring-blue-500" placeholder="예: 타 시스템 영향도 파악에 추가 시간 소요" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 플로팅 액션 바 스크롤 겹침 오류 해결 (fixed -> sticky) */}
+                    <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 flex justify-end space-x-4 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] z-20 w-full mt-auto">
+                        <button className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition">임시 저장</button>
+                        <button onClick={() => setView('note_create')} className="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition flex items-center">
+                            작업 상세(원인/해결) 작성 이동 <ChevronRight className="w-4 h-4 ml-2" />
+                        </button>
+                    </div>
+                </div>
+            );
+
+            // ==========================================
+            // [화면 3] 작업노트 작성 상세 (FR-03,04,05,07 복합 탭)
+            // ==========================================
             const NoteCreateView = () => (
                 <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-50">
-                <div className="bg-white border-b border-slate-200 px-6 py-4">
-                    <div className="flex items-center text-sm text-slate-500 mb-2">
-                    <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
-                    <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('folder_detail')}>작업폴더 상세</span> <ChevronRight className="w-4 h-4 mx-1" />
-                    <span className="font-semibold text-slate-800">작업노트 작성</span>
+                    <div className="bg-white border-b border-slate-200 px-6 py-4 shrink-0">
+                        <div className="flex items-center text-sm text-slate-500 mb-2">
+                        <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('task_form')}>업무노트 양식</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="font-semibold text-slate-800">상세 작업노트 및 검증</span>
+                        </div>
+                        <h1 className="text-2xl font-bold text-slate-800">상세 작업노트 및 검증</h1>
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-800">작업노트 작성 및 검증</h1>
+
+                    <div className="flex-1 flex overflow-hidden">
+                        {/* 좌측 탭 메뉴 */}
+                        <div className="w-64 bg-white border-r border-slate-200 p-4 space-y-1 overflow-y-auto">
+                        <button onClick={() => setCreateTab('cause')} className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition ${createTab === 'cause' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}>
+                            <AlertCircle className="w-5 h-5 mr-3" /> 원인/해결방안 <FRBadge code="FR-03" />
+                        </button>
+                        <button onClick={() => setCreateTab('error')} className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition ${createTab === 'error' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}>
+                            <Code className="w-5 h-5 mr-3" /> 오류/검증 <FRBadge code="FR-04" />
+                        </button>
+                        <button onClick={() => setCreateTab('attach')} className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition ${createTab === 'attach' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}>
+                            <FileImage className="w-5 h-5 mr-3" /> 화면 첨부 <FRBadge code="FR-05" />
+                        </button>
+                        <button onClick={() => setCreateTab('system')} className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition ${createTab === 'system' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}>
+                            <ShieldAlert className="w-5 h-5 mr-3" /> 타시스템 검증 <FRBadge code="FR-07" />
+                        </button>
+                        </div>
+
+                        {/* 우측 콘텐츠 영역 레이아웃 분리로 스크롤 겹침 오류 제거 */}
+                        <div className="flex-1 flex flex-col relative overflow-hidden">
+                            <div className="flex-1 overflow-y-auto p-8 pb-32">
+                            
+                            {/* FR-03: 원인 및 해결방안 */}
+                            {createTab === 'cause' && (
+                                <div className="max-w-4xl">
+                                    <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-6">오류 원인 분석</h2>
+                                    <div className="bg-white border border-slate-200 rounded-lg p-6 mb-6 shadow-sm">
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">원인 요약 <span className="text-red-500">*</span></label>
+                                        <textarea className="w-full border border-slate-300 rounded-md p-3 text-sm focus:ring-blue-500" rows="3" defaultValue="세션 만료 시 redirect 처리 미흡 — Spring Security filterChain에서 expired session을 catch하지 못해 500 오류 반환. IE에서 SameSite 쿠키 속성 미지원으로 세션 재발급 실패."></textarea>
+                                    </div>
+
+                                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-8">
+                                        <label className="block text-sm font-medium text-orange-800 mb-2">요청 업체 제한 사항</label>
+                                        <div className="flex space-x-4 text-sm text-orange-700">
+                                        <span>· JDK 1.8 환경 유지 필수</span>
+                                        <span>· Spring Boot 2.7.x 이하</span>
+                                        <span>· IE 11 지원 유지 필수</span>
+                                        </div>
+                                    </div>
+
+                                    {/* 해결: 탭 선택 안됨 오류 (해결방안 1안/2안) */}
+                                    <div className="flex items-center justify-between mb-4 border-b border-slate-200">
+                                        <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-2">해결방안 선택</h2>
+                                        <div className="flex space-x-1 mb-[-1px]">
+                                            <button onClick={() => setSolutionTab('1안')} className={`px-6 py-2.5 font-bold rounded-t-lg z-10 text-sm transition ${solutionTab === '1안' ? 'bg-white border border-b-white border-slate-200 text-blue-600' : 'bg-slate-50 border border-transparent text-slate-500 hover:bg-slate-100'}`}>1안 기존 구조 유지 방식</button>
+                                            <button onClick={() => setSolutionTab('2안')} className={`px-6 py-2.5 font-bold rounded-t-lg z-10 text-sm transition ${solutionTab === '2안' ? 'bg-white border border-b-white border-slate-200 text-blue-600' : 'bg-slate-50 border border-transparent text-slate-500 hover:bg-slate-100'}`}>2안 리팩토링 방식</button>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white border border-slate-200 border-t-0 rounded-b-lg rounded-tr-lg p-6 shadow-sm relative top-[-17px]">
+                                        {solutionTab === '1안' ? (
+                                            <>
+                                                <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-3">
+                                                    <span className="text-blue-700 font-medium flex items-center"><CheckSquare className="w-4 h-4 mr-2"/> 1안 선택됨 (기존 구조 유지)</span>
+                                                </div>
+                                                <div className="grid grid-cols-[120px_1fr] gap-y-4 text-sm">
+                                                    <div className="font-medium text-slate-500">구현 방법 :</div>
+                                                    <div className="text-slate-800">SessionExpiredException 핸들러 추가 → /session-expired 리다이렉트 처리</div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-3">
+                                                    <span className="text-blue-700 font-medium flex items-center"><CheckSquare className="w-4 h-4 mr-2"/> 2안 선택됨 (리팩토링 방식)</span>
+                                                </div>
+                                                <div className="grid grid-cols-[120px_1fr] gap-y-4 text-sm">
+                                                    <div className="font-medium text-slate-500">구현 방법 :</div>
+                                                    <div className="text-slate-800">전역 인터셉터(Global Interceptor) 적용 및 토큰 기반 세션 관리로 구조 변경</div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* FR-04: 오류/검증 */}
+                            {createTab === 'error' && (
+                                <div className="max-w-4xl pb-24">
+                                    <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-4">개발 오류 원인</h2>
+                                    <div className="bg-white border border-slate-200 rounded-lg p-6 mb-8 shadow-sm space-y-4">
+                                        <div className="grid grid-cols-[150px_1fr] items-center">
+                                        <label className="text-sm font-medium text-slate-600">오류 발생 위치 *</label>
+                                        <input type="text" className="border border-slate-300 rounded p-2 text-sm w-full" defaultValue="com.example.auth.SessionFilter / line 142" />
+                                        </div>
+                                        <div className="grid grid-cols-[150px_1fr] items-center">
+                                        <label className="text-sm font-medium text-slate-600">오류 코드 *</label>
+                                        <input type="text" className="border border-slate-300 rounded p-2 text-sm w-full" defaultValue="HTTP 500 | NullPointerException" />
+                                        </div>
+                                    </div>
+
+                                    <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-4">테스트 검증 체크리스트</h2>
+                                    <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+                                                <label className="flex items-center space-x-3 cursor-pointer">
+                                                <input type="checkbox" defaultChecked className="w-5 h-5 text-green-600 rounded focus:ring-green-500" />
+                                                <span className="text-sm font-medium text-slate-800">단위 테스트 (Unit Test)</span>
+                                                </label>
+                                                <span className="px-3 py-1 bg-green-50 text-green-700 text-xs rounded-full">완료 2025-04-18 14:22</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* FR-05: 화면 첨부 */}
+                            {createTab === 'attach' && (
+                                <div className="max-w-5xl pb-24">
+                                <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-6">수정 화면 첨부 업로드</h2>
+                                <div className="grid grid-cols-2 gap-6 mb-8">
+                                    <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
+                                        <div className="bg-red-50 text-red-700 px-4 py-2 text-sm font-bold border-b border-red-100">Before (수정 전)</div>
+                                        <div className="p-6">
+                                            <div className="border-2 border-dashed border-slate-300 rounded-lg h-40 flex flex-col items-center justify-center bg-slate-50 cursor-pointer">
+                                            <UploadCloud className="w-6 h-6 text-blue-600 mb-2" />
+                                            <span className="text-sm text-slate-500">파일 끌어다 놓기</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                            )}
+
+                            {/* FR-07: 타시스템 검증 */}
+                            {createTab === 'system' && (
+                                <div className="max-w-5xl pb-24">
+                                    <div className="flex items-center mb-6">
+                                        <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3">공통 기능 타시스템 영향도 검증</h2>
+                                        <span className="ml-3 px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 rounded text-xs font-bold">공통 기능 변경 감지</span>
+                                    </div>
+                                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6 flex items-start">
+                                        <AlertTriangle className="w-5 h-5 text-orange-600 mr-2 shrink-0 mt-0.5" />
+                                        <div className="text-sm text-orange-800">
+                                            <p className="font-bold mb-1">공통 인증 모듈 수정이 감지되었습니다.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            </div>
+                            
+                            {/* 저장 및 완료 버튼 플로팅 영역 (스크롤 컨테이너 바깥 절대위치 하단 고정) */}
+                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 flex justify-end space-x-4 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] z-20">
+                                <button className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition">임시 저장</button>
+                                <button onClick={() => setView('note_detail')} className="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition">작업노트 확정 및 등록</button>
+                            </div>
+
+                        </div>
+                    </div>
                 </div>
+            );
 
-                <div className="flex-1 flex overflow-hidden">
-                    {/* 좌측 탭 메뉴 */}
-                    <div className="w-64 bg-white border-r border-slate-200 p-4 space-y-1 overflow-y-auto">
-                    <button onClick={() => setCreateTab('cause')} className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition ${createTab === 'cause' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}>
-                        <AlertCircle className="w-5 h-5 mr-3" /> 원인/해결방안 <FRBadge code="FR-03" />
-                    </button>
-                    <button onClick={() => setCreateTab('error')} className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition ${createTab === 'error' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}>
-                        <Code className="w-5 h-5 mr-3" /> 오류/검증 <FRBadge code="FR-04" />
-                    </button>
-                    <button onClick={() => setCreateTab('attach')} className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition ${createTab === 'attach' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}>
-                        <FileImage className="w-5 h-5 mr-3" /> 화면 첨부 <FRBadge code="FR-05" />
-                    </button>
-                    <button onClick={() => setCreateTab('system')} className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition ${createTab === 'system' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}>
-                        <ShieldAlert className="w-5 h-5 mr-3" /> 타시스템 검증 <FRBadge code="FR-07" />
-                    </button>
+            // ==========================================
+            // [화면 4] 작업노트 상세 (FR-06,09)
+            // ==========================================
+            const NoteDetailView = () => (
+                <div className="p-6 max-w-5xl mx-auto">
+                    <div className="flex items-center text-sm text-slate-500 mb-6">
+                        <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('folder_detail')}>작업폴더 상세</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="font-semibold text-slate-800">작업노트 상세</span>
                     </div>
 
-                    {/* 우측 콘텐츠 영역 */}
-                    <div className="flex-1 overflow-y-auto p-8 relative">
-                    
-                    {/* FR-03: 원인 및 해결방안 */}
-                    {createTab === 'cause' && (
-                        <div className="max-w-4xl pb-24">
-                        <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-6">오류 원인 분석</h2>
-                        
-                        <div className="bg-white border border-slate-200 rounded-lg p-6 mb-6 shadow-sm">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">원인 요약 <span className="text-red-500">*</span></label>
-                            <textarea className="w-full border border-slate-300 rounded-md p-3 text-sm focus:ring-blue-500" rows="3" defaultValue="세션 만료 시 redirect 처리 미흡 — Spring Security filterChain에서 expired session을 catch하지 못해 500 오류 반환. IE에서 SameSite 쿠키 속성 미지원으로 세션 재발급 실패."></textarea>
-                        </div>
+                    <div className="flex space-x-6 mb-8 border-b border-slate-200">
+                        <button onClick={() => setDetailTab('answer')} className={`pb-3 text-lg font-bold border-b-2 transition ${detailTab === 'answer' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+                        답변 내용 <FRBadge code="FR-06" />
+                        </button>
+                        <button onClick={() => setDetailTab('manual')} className={`pb-3 text-lg font-bold border-b-2 transition ${detailTab === 'manual' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+                        매뉴얼 반영 <FRBadge code="FR-09" />
+                        </button>
+                    </div>
 
-                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-8">
-                            <label className="block text-sm font-medium text-orange-800 mb-2">요청 업체 제한 사항</label>
-                            <div className="flex space-x-4 text-sm text-orange-700">
-                            <span>· JDK 1.8 환경 유지 필수</span>
-                            <span>· Spring Boot 2.7.x 이하</span>
-                            <span>· IE 11 지원 유지 필수</span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-between mb-4 border-b border-slate-200">
-                            <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-2">해결방안 선택</h2>
+                    {/* FR-06: 비개발 담당자 답변 */}
+                    {detailTab === 'answer' && (
+                        <div>
                             <div className="flex space-x-1 mb-[-1px]">
-                            <button className="px-6 py-2.5 bg-white border border-b-white border-slate-200 text-blue-600 font-bold rounded-t-lg z-10 text-sm">1안 기존 구조 유지 방식</button>
-                            <button className="px-6 py-2.5 bg-slate-50 border border-transparent text-slate-500 font-medium rounded-t-lg hover:bg-slate-100 text-sm transition">2안 리팩토링 방식</button>
-                            <button className="px-6 py-2.5 bg-slate-50 border border-transparent text-slate-500 font-medium rounded-t-lg hover:bg-slate-100 text-sm transition">기타 방안 직접 입력</button>
-                            </div>
-                        </div>
-
-                        <div className="bg-white border border-slate-200 border-t-0 rounded-b-lg rounded-tr-lg p-6 shadow-sm relative top-[-17px]">
-                            <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-3">
-                            <span className="text-blue-700 font-medium flex items-center"><CheckSquare className="w-4 h-4 mr-2"/> 1안 선택됨 (기존 구조 유지)</span>
-                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">제한 사항 충족</span>
+                                <button onClick={() => setAnswerType('tech')} className={`px-6 py-3 border rounded-t-lg font-medium text-sm transition ${answerType === 'tech' ? 'bg-white border-slate-200 border-b-white text-blue-600 z-10 relative' : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'}`}>개발 답변 (기술용)</button>
+                                <button onClick={() => setAnswerType('easy')} className={`px-6 py-3 border rounded-t-lg font-medium text-sm transition ${answerType === 'easy' ? 'bg-white border-slate-200 border-b-white text-blue-600 z-10 relative' : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'}`}>담당자 답변 (쉬운 언어)</button>
                             </div>
 
-                            <div className="grid grid-cols-[120px_1fr] gap-y-4 text-sm">
-                            <div className="font-medium text-slate-500">구현 방법 :</div>
-                            <div className="text-slate-800">SessionExpiredException 핸들러 추가 → /session-expired 리다이렉트 처리</div>
-                            
-                            <div className="font-medium text-slate-500">예상 공수 :</div>
-                            <div className="text-slate-800">0.5일 (4시간)</div>
-                            
-                            <div className="font-medium text-slate-500">장점 :</div>
-                            <div className="text-slate-800">코드 변경 최소화, 기존 구조 유지, IE 11 호환</div>
-                            
-                            <div className="font-medium text-slate-500">단점 :</div>
-                            <div className="text-slate-800">근본적 세션 관리 구조는 그대로 유지</div>
-
-                            <div className="font-medium text-slate-500">테스트 항목 :</div>
-                            <div className="text-slate-800">세션 만료 → 로그인 페이지 이동 / IE 11 동작 확인</div>
-                            </div>
-
-                            <div className="mt-8 flex space-x-3">
-                            <button className="px-6 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition">이 방안으로 확정</button>
-                            <button className="px-6 py-2 border border-slate-300 text-slate-700 rounded font-medium hover:bg-slate-50 transition">2안 보기</button>
-                            <button className="px-6 py-2 bg-slate-100 text-slate-700 rounded font-medium hover:bg-slate-200 transition">두 방안 비교 보기</button>
-                            </div>
-                        </div>
+                            {answerType === 'tech' ? (
+                                <div className="bg-white border border-slate-200 p-8 rounded-b-lg rounded-tr-lg shadow-sm min-h-[300px] text-sm font-mono text-slate-700 space-y-4">
+                                <p># 원인: 세션 만료 예외 처리 누락으로 인한 500 오류</p>
+                                <p>1. AuthInterceptor.java 수정<br/>  - handleTokenExpiry() 메소드 추가<br/>  - Response Code 401 명시적 반환 처리</p>
+                                </div>
+                            ) : (
+                                <div className="bg-white border border-slate-200 p-8 rounded-b-lg rounded-tr-lg shadow-sm">
+                                    <div className="flex justify-between items-center mb-6 pb-2 border-b border-slate-100">
+                                        <span className="text-lg font-bold text-slate-800">담당자 답변 (쉬운 언어 버전)</span>
+                                        <span className="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-bold flex items-center"><Wand2 className="w-3 h-3 mr-1"/> AI 초안 · 검토 필요</span>
+                                    </div>
+                                    <div className="space-y-6 text-sm text-slate-800">
+                                        <p>안녕하세요. 요청하신 로그인 세션 오류 건에 대한 처리 결과를 안내드립니다.</p>
+                                        <div>
+                                            <h4 className="font-bold text-blue-800 flex items-center mb-2"><span className="w-3 h-3 bg-blue-600 mr-2 rounded-sm"></span> 어떻게 수정되었나요?</h4>
+                                            <p className="pl-5 bg-slate-50 p-3 rounded">세션이 만료되면 오류 대신 로그인 화면으로 자동 이동하도록 수정했습니다.</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-8 flex space-x-3">
+                                        <button className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 transition">답변 확정 및 발송</button>
+                                        <button onClick={() => setAnswerType('tech')} className="px-6 py-2.5 bg-slate-100 text-slate-600 font-medium rounded hover:bg-slate-200 ml-auto transition">개발 답변으로 전환</button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    {/* FR-04: 오류/검증 */}
-                    {createTab === 'error' && (
-                        <div className="max-w-4xl pb-24">
-                        <div className="bg-white border border-blue-200 rounded-lg p-4 mb-8 flex items-center space-x-6 bg-blue-50/30">
-                            <span className="text-sm font-medium text-slate-700">작업 유형 :</span>
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="wType" className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm text-slate-600">신규 구축</span>
-                            </label>
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="wType" defaultChecked className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm text-blue-700 font-bold">오류 수정 (활성화됨)</span>
-                            </label>
-                            <label className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="wType" className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm text-slate-600">기능 개선</span>
-                            </label>
-                        </div>
-
-                        <div className="flex items-center mb-4">
-                            <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3">개발 오류 원인</h2>
-                            <span className="ml-3 px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded text-[10px] font-bold">오류수정 시 필수</span>
-                        </div>
-                        <div className="bg-white border border-slate-200 rounded-lg p-6 mb-8 shadow-sm space-y-4">
-                            <div className="grid grid-cols-[150px_1fr] items-center">
-                            <label className="text-sm font-medium text-slate-600">오류 발생 위치 *</label>
-                            <input type="text" className="border border-slate-300 rounded p-2 text-sm w-full" defaultValue="com.example.auth.SessionFilter / line 142" />
+                    {/* FR-09: 매뉴얼 반영 */}
+                    {detailTab === 'manual' && (
+                        <div>
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start text-amber-800 text-sm">
+                                <AlertTriangle className="w-5 h-5 mr-2 shrink-0 mt-0.5" />
+                                <div><p className="font-bold mb-1">수정된 내용과 연관된 매뉴얼 2건이 업데이트가 필요합니다.</p></div>
                             </div>
-                            <div className="grid grid-cols-[150px_1fr] items-center">
-                            <label className="text-sm font-medium text-slate-600">오류 코드 *</label>
-                            <input type="text" className="border border-slate-300 rounded p-2 text-sm w-full" defaultValue="HTTP 500 | NullPointerException" />
+                            <div className="space-y-6">
+                                <div className="bg-white border border-slate-200 rounded-lg shadow-sm">
+                                    <div className="bg-slate-50 px-6 py-3 border-b border-slate-200 flex justify-between items-center rounded-t-lg">
+                                        <span className="font-medium text-slate-700">MNL-045 · 로그인 및 인증 사용 가이드</span>
+                                        <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">업데이트 필요</span>
+                                    </div>
+                                    <div className="p-6">
+                                        <div className="grid grid-cols-2 gap-4 mb-6">
+                                            <div className="bg-red-50 border border-red-100 rounded-lg p-4"><span className="text-xs font-bold text-red-600 mb-2 block">수정 전</span><p className="text-sm text-slate-700">세션 만료 시 오류 페이지가 표시될 수 있습니다.</p></div>
+                                            <div className="bg-green-50 border border-green-200 rounded-lg p-4"><span className="text-xs font-bold text-green-700 mb-2 block">수정 후</span><p className="text-sm text-slate-800">세션 만료 시 자동으로 로그인 화면으로 이동합니다.</p></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-[150px_1fr] items-center">
-                            <label className="text-sm font-medium text-slate-600">스택 트레이스 *</label>
-                            <input type="text" className="border border-slate-300 rounded p-2 text-sm w-full font-mono text-xs" defaultValue="at SessionFilter.doFilter(SessionFilter.java:142) ... [12 more lines]" />
-                            </div>
-                            <div className="grid grid-cols-[150px_1fr] items-center">
-                            <label className="text-sm font-medium text-slate-600">재현 조건</label>
-                            <input type="text" className="border border-slate-300 rounded p-2 text-sm w-full" defaultValue="세션 만료(30min) + IE11 + 새로고침" />
-                            </div>
-                        </div>
-
-                        <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-4">테스트 검증 체크리스트</h2>
-                        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-                            <div className="space-y-4">
-                            <div className="flex justify-between items-center border-b border-slate-50 pb-3">
-                                <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" defaultChecked className="w-5 h-5 text-green-600 rounded focus:ring-green-500" />
-                                <span className="text-sm font-medium text-slate-800">단위 테스트 (Unit Test)</span>
-                                </label>
-                                <span className="px-3 py-1 bg-green-50 text-green-700 text-xs rounded-full">완료 2025-04-18 14:22</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-slate-50 pb-3">
-                                <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" defaultChecked className="w-5 h-5 text-green-600 rounded focus:ring-green-500" />
-                                <span className="text-sm font-medium text-slate-800">통합 테스트 (Integration Test)</span>
-                                </label>
-                                <span className="px-3 py-1 bg-green-50 text-green-700 text-xs rounded-full">완료 2025-04-18 15:05</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-slate-50 pb-3">
-                                <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" className="w-5 h-5 text-slate-300 rounded focus:ring-blue-500" />
-                                <span className="text-sm text-slate-600">회귀 테스트 (Regression Test)</span>
-                                </label>
-                                <span className="px-3 py-1 bg-amber-50 text-amber-700 text-xs rounded-full">대기중</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-slate-50 pb-3">
-                                <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" className="w-5 h-5 text-slate-300 rounded focus:ring-blue-500" />
-                                <span className="text-sm text-slate-600">브라우저 호환성 (IE 11 / Chrome)</span>
-                                </label>
-                                <span className="px-3 py-1 bg-amber-50 text-amber-700 text-xs rounded-full">대기중</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" className="w-5 h-5 text-slate-300 rounded focus:ring-blue-500" />
-                                <span className="text-sm text-slate-600">스테이징 배포 확인</span>
-                                </label>
-                                <span className="px-3 py-1 text-slate-400 text-xs">—</span>
-                            </div>
-                            </div>
-                            <div className="mt-6 pt-4 border-t border-slate-100 flex space-x-3">
-                            <button className="px-6 py-2 bg-green-50 text-green-700 font-medium rounded hover:bg-green-100 transition">검증 완료로 표시</button>
-                            <button className="px-6 py-2 bg-slate-100 text-slate-600 font-medium rounded hover:bg-slate-200 transition">임시저장</button>
-                            </div>
-                        </div>
                         </div>
                     )}
+                </div>
+            );
 
-                    {/* FR-05: 화면 첨부 */}
-                    {createTab === 'attach' && (
-                        <div className="max-w-5xl pb-24">
-                        <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-6">수정 화면 첨부 업로드</h2>
-                        
-                        <div className="grid grid-cols-2 gap-6 mb-8">
-                            {/* Before Zone */}
-                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
-                            <div className="bg-red-50 text-red-700 px-4 py-2 text-sm font-bold border-b border-red-100">Before (수정 전)</div>
-                            <div className="p-6">
-                                <div className="border-2 border-dashed border-slate-300 rounded-lg h-40 flex flex-col items-center justify-center bg-slate-50 cursor-pointer hover:bg-slate-100 transition">
-                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2"><UploadCloud className="w-6 h-6 text-blue-600" /></div>
-                                <span className="text-sm text-slate-500">파일 끌어다 놓기</span>
-                                <span className="text-sm text-blue-600 font-medium">또는 클릭</span>
-                                </div>
-                                <div className="mt-4 flex justify-between items-center">
-                                <button className="px-4 py-1.5 border border-blue-600 text-blue-600 rounded text-sm hover:bg-blue-50 transition">파일 선택</button>
-                                <span className="text-xs text-slate-400">PNG · JPG · PDF · GIF (최대 10MB)</span>
-                                </div>
-                            </div>
-                            </div>
+            // ==========================================
+            // [화면 5] 나의 작업 목록 (v1.2 신규 반영)
+            // ==========================================
+            const MyTasksView = () => {
+                // 탭 상태 연동 필터링 기능 추가
+                const filteredTasks = taskFilter === '전체' 
+                    ? MOCK_MY_TASKS 
+                    : MOCK_MY_TASKS.filter(t => taskFilter === '지연' ? t.isOverdue : t.status === taskFilter);
 
-                            {/* After Zone */}
-                            <div className="border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
-                            <div className="bg-green-50 text-green-700 px-4 py-2 text-sm font-bold border-b border-green-100">After (수정 후)</div>
-                            <div className="p-6">
-                                <div className="border-2 border-dashed border-slate-300 rounded-lg h-40 flex flex-col items-center justify-center bg-slate-50 cursor-pointer hover:bg-slate-100 transition">
-                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2"><UploadCloud className="w-6 h-6 text-blue-600" /></div>
-                                <span className="text-sm text-slate-500">파일 끌어다 놓기</span>
-                                <span className="text-sm text-blue-600 font-medium">또는 클릭</span>
+                return (
+                <div className="p-6 max-w-7xl mx-auto">
+                    <div className="flex items-center text-sm text-slate-500 mb-6">
+                        <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('list')}>홈</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="font-semibold text-slate-800">나의 작업 목록</span>
+                    </div>
+
+                    {/* 요약 카드 */}
+                    <div className="grid grid-cols-4 gap-4 mb-6">
+                        <div className="bg-blue-100 border border-blue-200 rounded-lg p-5 shadow-sm">
+                            <div className="text-blue-800 font-medium mb-1 text-sm">전체 작업</div>
+                            <div className="text-3xl font-bold text-blue-700">23</div>
+                        </div>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 shadow-sm opacity-80 hover:opacity-100 cursor-pointer transition">
+                            <div className="text-blue-800 font-medium mb-1 text-sm">진행중</div>
+                            <div className="text-3xl font-bold text-blue-700">8</div>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-5 shadow-sm opacity-80 hover:opacity-100 cursor-pointer transition">
+                            <div className="text-green-800 font-medium mb-1 text-sm">완료</div>
+                            <div className="text-3xl font-bold text-green-700">12</div>
+                        </div>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-5 shadow-sm opacity-80 hover:opacity-100 cursor-pointer transition">
+                            <div className="text-red-800 font-medium mb-1 text-sm">지연/초과</div>
+                            <div className="text-3xl font-bold text-red-600">3</div>
+                        </div>
+                    </div>
+
+                    {/* 필터 및 테이블 */}
+                    <div className="bg-white border border-slate-200 rounded-lg shadow-sm">
+                        <div className="p-4 border-b border-slate-200 flex justify-between items-center">
+                            <div className="flex space-x-4 flex-1">
+                                <div className="relative w-64">
+                                    <input type="text" placeholder="작업노트 검색..." className="w-full pl-3 pr-4 py-2 border border-slate-300 rounded-md focus:ring-blue-500 text-sm" />
                                 </div>
-                                <div className="mt-4 flex justify-between items-center">
-                                <button className="px-4 py-1.5 border border-blue-600 text-blue-600 rounded text-sm hover:bg-blue-50 transition">파일 선택</button>
-                                <span className="text-xs text-slate-400">PNG · JPG · PDF · GIF (최대 10MB)</span>
+                                <button className="px-6 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition">검색</button>
+                                
+                                {/* 탭 선택 안됨 오류 해결 (전체/진행중/완료/지연 필터) */}
+                                <div className="flex bg-slate-100 p-1 rounded-md">
+                                    {['전체', '진행중', '완료', '지연'].map(filter => (
+                                        <button 
+                                            key={filter} 
+                                            onClick={() => setTaskFilter(filter)} 
+                                            className={`px-4 py-1 text-sm font-medium rounded transition ${taskFilter === filter ? 'bg-white text-blue-700 border border-slate-200 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                                        >
+                                            {filter}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
+                            <div className="flex items-center space-x-2">
+                                <span className="text-sm text-slate-500"><Filter className="w-4 h-4 inline-block mr-1"/>최신순</span>
                             </div>
                         </div>
 
-                        <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3 mb-4">첨부된 파일 목록</h2>
-                        <div className="bg-white border border-slate-200 rounded-lg p-2 shadow-sm space-y-2">
-                            <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded">
-                            <div className="flex items-center">
-                                <div className="w-10 h-10 bg-slate-200 rounded flex items-center justify-center text-[10px] font-bold text-slate-500 mr-4">IMG</div>
-                                <div>
-                                <div className="text-sm font-medium text-slate-700">before_login_error.png</div>
-                                <div className="text-xs text-slate-400">1.2 MB · 2025-04-18 14:05</div>
-                                </div>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                                <span className="px-2 py-1 bg-red-50 text-red-600 text-xs font-bold rounded">Before</span>
-                                <button className="text-sm text-slate-500 hover:text-slate-800 transition">미리보기</button>
-                                <button className="px-3 py-1.5 bg-red-50 text-red-600 text-sm rounded hover:bg-red-100 transition">삭제</button>
-                            </div>
-                            </div>
-                            <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded">
-                            <div className="flex items-center">
-                                <div className="w-10 h-10 bg-slate-200 rounded flex items-center justify-center text-[10px] font-bold text-slate-500 mr-4">IMG</div>
-                                <div>
-                                <div className="text-sm font-medium text-slate-700">after_login_fixed.png</div>
-                                <div className="text-xs text-slate-400">0.9 MB · 2025-04-18 15:30</div>
-                                </div>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                                <span className="px-2 py-1 bg-green-50 text-green-600 text-xs font-bold rounded">After</span>
-                                <button className="text-sm text-slate-500 hover:text-slate-800 transition">미리보기</button>
-                                <button className="px-3 py-1.5 bg-red-50 text-red-600 text-sm rounded hover:bg-red-100 transition">삭제</button>
-                            </div>
-                            </div>
-                        </div>
-                        </div>
-                    )}
-
-                    {/* FR-07: 타시스템 검증 */}
-                    {createTab === 'system' && (
-                        <div className="max-w-5xl pb-24">
-                        <div className="flex items-center mb-6">
-                            <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3">공통 기능 타시스템 영향도 검증</h2>
-                            <span className="ml-3 px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 rounded text-xs font-bold">공통 기능 변경 감지</span>
-                        </div>
-
-                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6 flex items-start">
-                            <AlertTriangle className="w-5 h-5 text-orange-600 mr-2 shrink-0 mt-0.5" />
-                            <div className="text-sm text-orange-800">
-                            <p className="font-bold mb-1">공통 인증 모듈 수정이 감지되었습니다.</p>
-                            <p>아래 연관 시스템의 영향도를 검증하고 체크리스트를 완료해야 작업을 완료할 수 있습니다.</p>
-                            </div>
-                        </div>
-
-                        <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden mb-6">
-                            <table className="w-full text-left text-sm">
-                            <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
                                 <tr>
-                                <th className="px-6 py-3 font-medium">시스템명</th>
-                                <th className="px-6 py-3 font-medium">연관 관계</th>
-                                <th className="px-6 py-3 font-medium">검증 담당자</th>
-                                <th className="px-6 py-3 font-medium">상태</th>
-                                <th className="px-6 py-3 font-medium">조치</th>
+                                    <th className="px-6 py-3 font-medium">No.</th>
+                                    <th className="px-6 py-3 font-medium">작업노트 제목</th>
+                                    <th className="px-6 py-3 font-medium">시스템</th>
+                                    <th className="px-6 py-3 font-medium">요청일</th>
+                                    <th className="px-6 py-3 font-medium">완료 예정</th>
+                                    <th className="px-6 py-3 font-medium">소요시간</th>
+                                    <th className="px-6 py-3 font-medium">상태</th>
+                                    <th className="px-6 py-3 font-medium w-48">진행도</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                <tr>
-                                <td className="px-6 py-4 font-medium flex items-center text-slate-800"><CheckSquare className="w-4 h-4 text-green-600 mr-2"/> 구매관리 시스템</td>
-                                <td className="px-6 py-4 text-slate-600">공통 인증 모듈 사용</td>
-                                <td className="px-6 py-4 text-slate-600">김개발</td>
-                                <td className="px-6 py-4"><span className="px-2 py-1 bg-green-50 text-green-700 rounded-full text-[10px] font-bold">검증 완료</span></td>
-                                <td className="px-6 py-4"><button className="text-slate-400 hover:text-slate-700 transition">상세 보기</button></td>
-                                </tr>
-                                <tr>
-                                <td className="px-6 py-4 font-medium flex items-center text-slate-800"><CheckSquare className="w-4 h-4 text-green-600 mr-2"/> 인사관리 시스템</td>
-                                <td className="px-6 py-4 text-slate-600">세션 공유 구조 사용</td>
-                                <td className="px-6 py-4 text-slate-600">이개발</td>
-                                <td className="px-6 py-4"><span className="px-2 py-1 bg-green-50 text-green-700 rounded-full text-[10px] font-bold">검증 완료</span></td>
-                                <td className="px-6 py-4"><button className="px-3 py-1 bg-slate-50 text-slate-600 border border-slate-200 rounded transition hover:bg-slate-100">상세 보기</button></td>
-                                </tr>
-                                <tr>
-                                <td className="px-6 py-4 font-medium flex items-center text-slate-800"><div className="w-4 h-4 border border-slate-300 rounded mr-2"/> 재무관리 시스템</td>
-                                <td className="px-6 py-4 text-slate-600">공통 인증 모듈 사용</td>
-                                <td className="px-6 py-4 text-slate-600">박개발</td>
-                                <td className="px-6 py-4"><span className="px-2 py-1 bg-amber-50 text-amber-700 rounded-full text-[10px] font-bold">검증 필요</span></td>
-                                <td className="px-6 py-4"><button className="px-4 py-1.5 border border-blue-600 text-blue-600 rounded font-medium hover:bg-blue-50 transition">검증 시작</button></td>
-                                </tr>
-                                <tr className="bg-red-50/30">
-                                <td className="px-6 py-4 font-medium flex items-center text-slate-800"><div className="w-4 h-4 border border-slate-300 rounded mr-2"/> 고객포털 시스템</td>
-                                <td className="px-6 py-4 text-slate-600">SSO 연동</td>
-                                <td className="px-6 py-4 text-slate-600">최개발</td>
-                                <td className="px-6 py-4"><span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-bold">오류 발견</span></td>
-                                <td className="px-6 py-4"><button className="px-4 py-1.5 border border-blue-600 text-blue-600 rounded font-medium hover:bg-blue-50 bg-white transition">검증 시작</button></td>
-                                </tr>
-                                <tr>
-                                <td className="px-6 py-4 font-medium flex items-center text-slate-800"><div className="w-4 h-4 border border-slate-300 rounded mr-2"/> 모바일 앱 (Android/iOS)</td>
-                                <td className="px-6 py-4 text-slate-600">API 인증 공유</td>
-                                <td className="px-6 py-4 text-slate-600">정개발</td>
-                                <td className="px-6 py-4"><span className="px-2 py-1 bg-amber-50 text-amber-700 rounded-full text-[10px] font-bold">검증 필요</span></td>
-                                <td className="px-6 py-4"><button className="px-4 py-1.5 border border-blue-600 text-blue-600 rounded font-medium hover:bg-blue-50 transition">검증 시작</button></td>
-                                </tr>
+                                {/* 클릭 시 반응 없는 화면 해결 -> onClick 적용하여 상세화면으로 이동 */}
+                                {filteredTasks.map(task => (
+                                    <tr key={task.id} className="hover:bg-slate-50 transition cursor-pointer" onClick={() => setView('note_detail')}>
+                                        <td className="px-6 py-4 text-slate-400">{task.id}</td>
+                                        <td className="px-6 py-4 font-medium text-blue-700">{task.title}</td>
+                                        <td className="px-6 py-4 text-slate-600">{task.sys}</td>
+                                        <td className="px-6 py-4 text-slate-500">{task.date}</td>
+                                        <td className={`px-6 py-4 font-medium ${task.isOverdue ? 'text-red-600' : 'text-slate-600'}`}>{task.due}</td>
+                                        <td className="px-6 py-4 text-slate-600">{task.hours}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${task.statusColor}`}>{task.status}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="flex-1 bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                                                    <div 
+                                                        className={`h-2.5 rounded-full ${task.progress === 100 ? 'bg-green-600' : task.isOverdue ? 'bg-red-600' : 'bg-blue-600'}`} 
+                                                        style={{width: `${task.progress}%`}}
+                                                    ></div>
+                                                </div>
+                                                <span className="text-xs text-slate-400 w-8">{task.progress}%</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
-                            </table>
-                            <div className="bg-red-50 p-4 border-t border-red-100 flex items-start">
-                            <div className="text-red-600 w-4 h-4 mr-2 border border-red-600 text-xs flex items-center justify-center mt-0.5 font-bold">X</div>
-                            <div className="text-sm text-red-700">
-                                <p className="font-bold">고객포털 시스템에서 세션 연동 오류가 발견되었습니다.</p>
-                                <p>모든 연관 시스템 검증이 완료될 때까지 작업노트를 '완료' 처리할 수 없습니다.</p>
+                        </table>
+                        <div className="p-4 border-t border-slate-200 flex justify-between items-center bg-slate-50">
+                            <div className="flex space-x-2">
+                                <button className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 shadow-sm">+ 새 작업노트</button>
+                                <button className="px-4 py-2 bg-white border border-slate-300 text-slate-600 rounded text-sm font-medium flex items-center hover:bg-slate-50"><Download className="w-4 h-4 mr-1"/> 내보내기 (Excel)</button>
                             </div>
-                            </div>
+                            <div className="text-xs text-slate-500">1-8 / 총 23건 | 페이지 1/3</div>
                         </div>
-
-                        <div className="flex space-x-3">
-                            <button className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded opacity-50 cursor-not-allowed">전체 검증 완료 처리</button>
-                            <button className="px-6 py-2.5 bg-slate-100 text-slate-600 font-medium rounded hover:bg-slate-200 transition">검증 이력 보기</button>
-                        </div>
-                        </div>
-                    )}
-
-                    {/* 저장 및 완료 버튼 플로팅 영역 임시 */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t border-slate-200 flex justify-end space-x-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-                        <button className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition">임시 저장</button>
-                        <button onClick={() => setView('note_detail')} className="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition">작업노트 확정 및 등록</button>
-                    </div>
-
                     </div>
                 </div>
-                </div>
-            );
+                );
+            };
 
-            // --- 화면 4. [FR-06,09] 작업노트 상세 (답변 및 매뉴얼) ---
-            const NoteDetailView = () => (
-                <div className="p-6 max-w-5xl mx-auto">
-                <div className="flex items-center text-sm text-slate-500 mb-6">
-                    <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
-                    <span className="cursor-pointer hover:text-blue-600 transition" onClick={() => setView('folder_detail')}>작업폴더 상세</span> <ChevronRight className="w-4 h-4 mx-1" />
-                    <span className="font-semibold text-slate-800">작업노트 상세</span>
-                </div>
-
-                <div className="flex space-x-6 mb-8 border-b border-slate-200">
-                    <button onClick={() => setDetailTab('answer')} className={`pb-3 text-lg font-bold border-b-2 transition ${detailTab === 'answer' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                    답변 내용 <FRBadge code="FR-06" />
-                    </button>
-                    <button onClick={() => setDetailTab('manual')} className={`pb-3 text-lg font-bold border-b-2 transition ${detailTab === 'manual' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                    매뉴얼 반영 <FRBadge code="FR-09" />
-                    </button>
-                </div>
-
-                {/* FR-06: 비개발 담당자 답변 */}
-                {detailTab === 'answer' && (
-                    <div>
-                    <div className="flex space-x-1 mb-[-1px]">
-                        <button onClick={() => setAnswerType('tech')} className={`px-6 py-3 border rounded-t-lg font-medium text-sm transition ${answerType === 'tech' ? 'bg-white border-slate-200 border-b-white text-blue-600 z-10 relative' : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'}`}>
-                        개발 답변 (기술용)
-                        </button>
-                        <button onClick={() => setAnswerType('easy')} className={`px-6 py-3 border rounded-t-lg font-medium text-sm transition ${answerType === 'easy' ? 'bg-white border-slate-200 border-b-white text-blue-600 z-10 relative' : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'}`}>
-                        담당자 답변 (쉬운 언어)
-                        </button>
-                    </div>
-
-                    {answerType === 'tech' ? (
-                        <div className="bg-white border border-slate-200 p-8 rounded-b-lg rounded-tr-lg shadow-sm min-h-[300px] text-sm font-mono text-slate-700 space-y-4">
-                        <p># 원인: 세션 만료 예외 처리 누락으로 인한 500 오류</p>
-                        <p>1. AuthInterceptor.java 수정<br/>  - handleTokenExpiry() 메소드 추가<br/>  - Response Code 401 명시적 반환 처리</p>
-                        <p>2. 프론트엔드 라우터(router.js) 수정<br/>  - 401 catch 블록 추가하여 /login 으로 redirect</p>
-                        </div>
-                    ) : (
-                        <div className="bg-white border border-slate-200 p-8 rounded-b-lg rounded-tr-lg shadow-sm">
-                        <div className="flex justify-between items-center mb-6 pb-2 border-b border-slate-100">
-                            <span className="text-lg font-bold text-slate-800">담당자 답변 (쉬운 언어 버전)</span>
-                            <span className="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-bold flex items-center">
-                            <Wand2 className="w-3 h-3 mr-1"/> AI 초안 · 검토 필요
-                            </span>
-                        </div>
-
-                        <div className="space-y-6 text-sm text-slate-800">
-                            <p>안녕하세요. 요청하신 로그인 세션 오류 건에 대한 처리 결과를 안내드립니다.</p>
+            // ==========================================
+            // [화면 6] 통계/현황 조회 대시보드 (v1.2 신규 반영)
+            // ==========================================
+            const DashboardView = () => (
+                <div className="p-6 max-w-7xl mx-auto bg-slate-50 min-h-screen">
+                    <div className="bg-white border border-slate-200 rounded-lg p-4 mb-6 flex justify-between items-center shadow-sm">
+                        <div className="flex items-center space-x-4">
+                            <span className="text-sm font-medium text-slate-600">조회기간 :</span>
                             
-                            <div>
-                            <h4 className="font-bold text-blue-800 flex items-center mb-2"><span className="w-3 h-3 bg-blue-600 mr-2 rounded-sm"></span> 무엇이 문제였나요?</h4>
-                            <p className="pl-5 bg-slate-50 p-3 rounded">
-                                일정 시간(30분) 동안 화면을 사용하지 않으면, 로그인이 자동으로 만료됩니다.<br/>
-                                이때 화면을 새로고침하면 오류 페이지가 나타나는 현상이 발생했습니다.
-                            </p>
-                            </div>
-
-                            <div>
-                            <h4 className="font-bold text-blue-800 flex items-center mb-2"><span className="w-3 h-3 bg-blue-600 mr-2 rounded-sm"></span> 어떻게 수정되었나요?</h4>
-                            <p className="pl-5 bg-slate-50 p-3 rounded">
-                                세션이 만료되면 오류 대신 로그인 화면으로 자동 이동하도록 수정했습니다.<br/>
-                                이제 새로고침 시 로그인 화면으로 안내됩니다.
-                            </p>
-                            </div>
-
-                            <div>
-                            <h4 className="font-bold text-blue-800 flex items-center mb-2"><span className="w-3 h-3 bg-blue-600 mr-2 rounded-sm"></span> 사용 방법 변경 사항</h4>
-                            <p className="pl-5 bg-slate-50 p-3 rounded">
-                                사용자가 별도로 바꿀 것은 없습니다. 오류 없이 로그인 화면이 나타납니다.
-                            </p>
+                            {/* 탭 선택 안됨 오류 해결 (조회기간 필터) */}
+                            <div className="flex bg-slate-100 p-1 rounded-md">
+                                {['오늘', '이번주', '이번달', '3개월', '직접입력'].map(filter => (
+                                    <button 
+                                        key={filter} 
+                                        onClick={() => setDateFilter(filter)} 
+                                        className={`px-4 py-1 text-sm font-medium rounded transition ${dateFilter === filter ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                                    >
+                                        {filter}
+                                    </button>
+                                ))}
                             </div>
                         </div>
-
-                        <div className="mt-8 flex space-x-3">
-                            <button className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 transition">답변 확정 및 발송</button>
-                            <button className="px-6 py-2.5 border border-blue-600 text-blue-600 font-medium rounded hover:bg-blue-50 transition">내용 수정</button>
-                            <button className="px-6 py-2.5 bg-slate-100 text-slate-600 font-medium rounded hover:bg-slate-200 transition">AI 재생성</button>
-                            <button onClick={() => setAnswerType('tech')} className="px-6 py-2.5 bg-slate-100 text-slate-600 font-medium rounded hover:bg-slate-200 ml-auto transition">개발 답변으로 전환</button>
-                        </div>
-
-                        <div className="mt-6 bg-green-50 p-4 border border-green-200 rounded-lg flex items-start text-green-800 text-sm">
-                            <div className="w-4 h-4 border border-green-800 flex items-center justify-center text-[10px] mr-2 mt-0.5 font-bold">X</div>
-                            <p>이 답변은 시스템을 사용하는 담당자가 이해할 수 있도록 전문 용어를 최소화하여 작성되었습니다.<br/>최종 발송 전 내용을 반드시 검토해 주세요.</p>
-                        </div>
-                        </div>
-                    )}
-                    </div>
-                )}
-
-                {/* FR-09: 매뉴얼 반영 */}
-                {detailTab === 'manual' && (
-                    <div>
-                    <div className="flex items-center mb-4">
-                        <h2 className="text-xl font-bold text-slate-800 border-l-4 border-blue-600 pl-3">연관 매뉴얼 자동 탐지 결과</h2>
-                    </div>
-
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start text-amber-800 text-sm">
-                        <AlertTriangle className="w-5 h-5 mr-2 shrink-0 mt-0.5" />
-                        <div>
-                        <p className="font-bold mb-1">수정된 내용과 연관된 매뉴얼 2건이 업데이트가 필요합니다.</p>
-                        <p>매뉴얼 미반영 시 작업노트 상태에 '매뉴얼 미업데이트' 배지가 표시됩니다.</p>
+                        <div className="flex items-center space-x-2 text-sm">
+                            <input type="text" className="border border-slate-300 rounded px-3 py-1.5 w-32 text-slate-600" defaultValue="2025-04-01" />
+                            <span className="text-slate-400">~</span>
+                            <input type="text" className="border border-slate-300 rounded px-3 py-1.5 w-32 text-slate-600" defaultValue="2025-04-18" />
                         </div>
                     </div>
 
-                    <div className="space-y-6">
-                        {/* Manual Item 1 */}
-                        <div className="bg-white border border-slate-200 rounded-lg shadow-sm">
-                        <div className="bg-slate-50 px-6 py-3 border-b border-slate-200 flex justify-between items-center rounded-t-lg">
-                            <span className="font-medium text-slate-700">MNL-045 · 로그인 및 인증 사용 가이드</span>
-                            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">업데이트 필요</span>
+                    {/* KPI 요약 */}
+                    <div className="grid grid-cols-4 gap-4 mb-6">
+                        <div className="bg-blue-100 border border-blue-200 rounded-lg p-5">
+                            <div className="text-blue-800 text-sm mb-1">총 요청 건수</div>
+                            <div className="text-3xl font-bold text-blue-700 mb-1">247<span className="text-lg">건</span></div>
+                            <div className="text-xs text-blue-600">+12.4%</div>
                         </div>
-                        <div className="p-6">
-                            <p className="text-sm text-slate-500 mb-4">대상 섹션: 3.2 세션 만료 처리</p>
-                            <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="bg-red-50/50 border border-red-100 rounded-lg p-4">
-                                <span className="text-xs font-bold text-red-600 mb-2 block">수정 전</span>
-                                <p className="text-sm text-slate-700">세션 만료 시 오류 페이지가 표시될 수 있습니다.</p>
-                            </div>
-                            <div className="bg-green-50/50 border border-green-200 rounded-lg p-4 shadow-inner">
-                                <span className="text-xs font-bold text-green-700 mb-2 block">수정 후</span>
-                                <p className="text-sm text-slate-800">세션 만료 시 자동으로 로그인 화면으로 이동합니다.</p>
-                            </div>
-                            </div>
-                            <div className="flex space-x-3">
-                            <button className="px-4 py-2 bg-green-50 text-green-700 font-medium text-sm rounded hover:bg-green-100 transition">반영 완료로 표시</button>
-                            <button className="px-4 py-2 border border-blue-600 text-blue-600 font-medium text-sm rounded hover:bg-blue-50 transition">직접 편집</button>
-                            <button className="px-4 py-2 bg-slate-100 text-slate-600 font-medium text-sm rounded hover:bg-slate-200 transition">건너뛰기</button>
-                            </div>
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-5">
+                            <div className="text-green-800 text-sm mb-1">처리 완료</div>
+                            <div className="text-3xl font-bold text-green-700 mb-1">198<span className="text-lg">건</span></div>
+                            <div className="text-xs text-green-600">80.2%</div>
                         </div>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                            <div className="text-blue-800 text-sm mb-1">평균 처리일</div>
+                            <div className="text-3xl font-bold text-blue-700 mb-1">2.8<span className="text-lg">일</span></div>
+                            <div className="text-xs text-blue-600">-0.5일</div>
                         </div>
-
-                        {/* Manual Item 2 */}
-                        <div className="bg-white border border-slate-200 rounded-lg shadow-sm">
-                        <div className="bg-slate-50 px-6 py-3 border-b border-slate-200 flex justify-between items-center rounded-t-lg">
-                            <span className="font-medium text-slate-700">MNL-012 · 공통 오류 대처 가이드</span>
-                            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">업데이트 필요</span>
-                        </div>
-                        <div className="p-6">
-                            <p className="text-sm text-slate-500 mb-4">대상 섹션: 5.1 HTTP 500 오류</p>
-                            <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="bg-red-50/50 border border-red-100 rounded-lg p-4">
-                                <span className="text-xs font-bold text-red-600 mb-2 block">수정 전</span>
-                                <p className="text-sm text-slate-700">500 오류 발생 시 IT 담당자에게 즉시 연락하세요.</p>
-                            </div>
-                            <div className="bg-green-50/50 border border-green-200 rounded-lg p-4 shadow-inner">
-                                <span className="text-xs font-bold text-green-700 mb-2 block">수정 후</span>
-                                <p className="text-sm text-slate-800">로그인 세션 관련 500 오류는 재로그인 후 해결됩니다.</p>
-                            </div>
-                            </div>
-                            <div className="flex space-x-3">
-                            <button className="px-4 py-2 bg-green-50 text-green-700 font-medium text-sm rounded hover:bg-green-100 transition">반영 완료로 표시</button>
-                            <button className="px-4 py-2 border border-blue-600 text-blue-600 font-medium text-sm rounded hover:bg-blue-50 transition">직접 편집</button>
-                            <button className="px-4 py-2 bg-slate-100 text-slate-600 font-medium text-sm rounded hover:bg-slate-200 transition">건너뛰기</button>
-                            </div>
-                        </div>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-5">
+                            <div className="text-red-800 text-sm mb-1">지연 건수</div>
+                            <div className="text-3xl font-bold text-red-600 mb-1">12<span className="text-lg">건</span></div>
+                            <div className="text-xs text-red-600">4.9%</div>
                         </div>
                     </div>
 
-                    <div className="mt-8 bg-slate-50 border border-slate-200 p-4 rounded-lg flex justify-between items-center">
-                        <div className="text-sm font-medium text-slate-700">전체 매뉴얼 반영 현황: <span className="ml-4 px-3 py-1 bg-amber-100 text-amber-800 rounded-full font-bold">0 / 2 완료</span></div>
-                        <button className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 transition">전체 반영 완료 처리</button>
-                    </div>
-                    </div>
-                )}
+                    {/* 차트 영역 */}
+                    <div className="grid grid-cols-2 gap-6 mb-6">
+                        {/* 가로 막대 차트 */}
+                        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+                            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center border-l-4 border-blue-600 pl-3">
+                                A. 자주 발생하는 오류 유형 <span className="ml-2 px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-full">이번달 기준</span>
+                            </h3>
+                            <div className="space-y-4">
+                                {[
+                                    {label: '세션/인증 오류', count: 52, w: '80%', color: 'bg-blue-600'},
+                                    {label: '파일 업로드 오류', count: 38, w: '60%', color: 'bg-blue-500'},
+                                    {label: 'DB 조회 오류', count: 31, w: '50%', color: 'bg-blue-300'},
+                                    {label: 'UI 렌더링 오류', count: 24, w: '38%', color: 'bg-orange-500'},
+                                    {label: 'API 연동 오류', count: 18, w: '30%', color: 'bg-yellow-500'},
+                                    {label: '기타', count: 15, w: '25%', color: 'bg-slate-400'}
+                                ].map((item, idx) => (
+                                    <div key={idx} className="flex items-center text-sm">
+                                        <div className="w-32 text-slate-600">{item.label}</div>
+                                        <div className="flex-1 bg-slate-100 rounded h-5 overflow-hidden flex">
+                                            <div className={`${item.color} h-full rounded-r`} style={{width: item.w}}></div>
+                                        </div>
+                                        <div className="w-12 text-right text-slate-500">{item.count}건</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
 
+                        {/* 도넛 차트 */}
+                        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm flex items-center justify-center">
+                            <div className="donut-chart w-56 h-56 relative shadow-sm">
+                                <div className="donut-inner w-32 h-32 absolute">
+                                    <div className="text-2xl font-bold text-slate-800">178건</div>
+                                    <div className="text-xs text-slate-500 mt-1">총 오류</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 업체별 TOP 5 현황 테이블 */}
+                    <div className="grid grid-cols-1 gap-6 mb-8">
+                        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+                            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center border-l-4 border-blue-600 pl-3">
+                                B. 오류 건수 높은 업체 TOP 5 <span className="ml-2 px-2 py-0.5 bg-red-50 text-red-600 text-[10px] rounded-full">이번달 기준</span>
+                            </h3>
+                            <table className="w-full text-left text-sm border-t border-slate-200">
+                                <thead className="bg-slate-50 text-slate-500">
+                                    <tr>
+                                        <th className="px-4 py-3 font-medium">순위</th>
+                                        <th className="px-4 py-3 font-medium">업체명</th>
+                                        <th className="px-4 py-3 font-medium">오류 건수</th>
+                                        <th className="px-4 py-3 font-medium">전월 대비</th>
+                                        <th className="px-4 py-3 font-medium w-1/3">주요 오류 유형</th>
+                                        <th className="px-4 py-3 font-medium">조치 현황</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    <tr className="hover:bg-slate-50">
+                                        <td className="px-4 py-3 text-slate-500">1위</td>
+                                        <td className="px-4 py-3 font-medium text-slate-800">A대학교</td>
+                                        <td className="px-4 py-3 font-bold text-slate-700">47건</td>
+                                        <td className="px-4 py-3 font-bold text-red-500">+12</td>
+                                        <td className="px-4 py-3"><div className="flex items-center"><span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] rounded mr-2 w-16 text-center">세션 오류</span><div className="flex-1 bg-slate-100 h-2.5 rounded-full"><div className="bg-blue-600 h-full rounded-full" style={{width: '70%'}}></div></div></div></td>
+                                        <td className="px-4 py-3"><span className="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded-full">처리중</span></td>
+                                    </tr>
+                                    <tr className="hover:bg-slate-50">
+                                        <td className="px-4 py-3 text-slate-500">2위</td>
+                                        <td className="px-4 py-3 font-medium text-slate-800">B전문대</td>
+                                        <td className="px-4 py-3 font-bold text-slate-700">38건</td>
+                                        <td className="px-4 py-3 font-bold text-red-500">+5</td>
+                                        <td className="px-4 py-3"><div className="flex items-center"><span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] rounded mr-2 w-16 text-center">파일 업로드</span><div className="flex-1 bg-slate-100 h-2.5 rounded-full"><div className="bg-blue-500 h-full rounded-full" style={{width: '55%'}}></div></div></div></td>
+                                        <td className="px-4 py-3"><span className="px-2 py-1 bg-green-50 text-green-700 text-[10px] font-bold rounded-full">처리완료</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             );
 
+            // ==========================================
+            // 메인 렌더링 영역 (GNB & Main)
+            // ==========================================
             return (
                 <div className="min-h-screen bg-white font-sans text-slate-900 flex flex-col">
-                {/* Header GNB */}
-                <header className="h-16 bg-slate-800 text-white flex items-center px-6 justify-between shrink-0">
-                    <div className="flex items-center space-x-8">
-                    <h1 className="text-lg font-bold">내부 업무 요청 게시판</h1>
-                    <nav className="hidden md:flex space-x-1">
-                        <button className="px-4 py-2 bg-slate-700 rounded-md text-sm font-medium transition hover:bg-slate-600">작업폴더 (게시판)</button>
-                        <button className="px-4 py-2 text-slate-300 hover:bg-slate-700 rounded-md text-sm font-medium transition">나의 작업</button>
-                        <button className="px-4 py-2 text-slate-300 hover:bg-slate-700 rounded-md text-sm font-medium transition">통계/리포트</button>
-                    </nav>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-sm font-bold shadow-inner">K</div>
-                    </div>
-                </header>
+                    {/* Header GNB */}
+                    <header className="h-16 bg-slate-800 text-white flex items-center px-6 justify-between shrink-0 shadow-md relative z-20">
+                        <div className="flex items-center space-x-8">
+                            <h1 className="text-lg font-bold flex items-center">
+                                내부 업무 요청 게시판 <span className="ml-3 px-2 py-0.5 bg-blue-500/30 text-blue-200 text-[10px] rounded">v1.2</span>
+                            </h1>
+                            <nav className="hidden md:flex space-x-2">
+                                <button onClick={() => setView('list')} className={`px-4 py-2 rounded-md text-sm font-medium transition ${view === 'list' || view === 'folder_detail' || view === 'task_form' || view === 'note_create' || view === 'note_detail' ? 'bg-blue-600 shadow-inner' : 'text-slate-300 hover:bg-slate-700'}`}>작업폴더 (게시판)</button>
+                                <button onClick={() => setView('my_tasks')} className={`px-4 py-2 rounded-md text-sm font-medium transition ${view === 'my_tasks' ? 'bg-blue-600 shadow-inner' : 'text-slate-300 hover:bg-slate-700'}`}>나의 작업</button>
+                                <button onClick={() => setView('dashboard')} className={`px-4 py-2 rounded-md text-sm font-medium transition ${view === 'dashboard' ? 'bg-blue-600 shadow-inner' : 'text-slate-300 hover:bg-slate-700'}`}>통계/리포트</button>
+                            </nav>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                            <div className="text-xs text-slate-300 mr-2 border-r border-slate-600 pr-4">김개발 님</div>
+                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-sm font-bold shadow-inner cursor-pointer hover:bg-blue-400 transition">K</div>
+                        </div>
+                    </header>
 
-                {/* Main Content */}
-                <main className="flex-1 overflow-auto bg-slate-50">
-                    {view === 'list' && <FolderListView />}
-                    {view === 'similar_search' && <SimilarSearchView />}
-                    {view === 'folder_detail' && <FolderDetailView />}
-                    {view === 'note_create' && <NoteCreateView />}
-                    {view === 'note_detail' && <NoteDetailView />}
-                </main>
+                    {/* Main Content Area */}
+                    <main className="flex-1 overflow-auto bg-slate-50 relative">
+                        {view === 'list' && <FolderListView />}
+                        {view === 'similar_search' && <SimilarSearchView />}
+                        {view === 'folder_detail' && <FolderDetailView />}
+                        {view === 'task_form' && <TaskNoteFormView />}
+                        {view === 'note_create' && <NoteCreateView />}
+                        {view === 'note_detail' && <NoteDetailView />}
+                        {view === 'my_tasks' && <MyTasksView />}
+                        {view === 'dashboard' && <DashboardView />}
+                    </main>
                 </div>
             );
         }
