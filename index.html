@@ -212,7 +212,7 @@
                             </div>
                             <button class="px-6 py-2 bg-intra-primary text-white rounded-[5px] font-medium hover:bg-intra-primaryDark transition text-sm">검색</button>
                             
-                            <!-- Changed: Folder creation is now manual -->
+                            <!-- Folder creation is now manual -->
                             <button data-action="toggle" data-key="showNewFolderModal" data-val="true" class="px-6 py-2 bg-white border border-intra-border text-intra-text rounded-[5px] font-medium hover:bg-gray-50 flex items-center transition text-sm">
                                 ➕ 새 폴더 등록
                             </button>
@@ -258,7 +258,7 @@
                                             <div class="bg-white border border-intra-border rounded-[5px] shadow-sm overflow-hidden">
                                                 <div class="bg-gray-50 px-4 py-3 border-b border-intra-border flex justify-between items-center">
                                                     <h4 class="font-bold text-intra-text text-sm flex items-center">↳ 하위 작업노트 목록</h4>
-                                                    <!-- Changed: Triggers AI Panel for Notes -->
+                                                    <!-- Triggers AI Panel for Notes -->
                                                     <button data-action="toggle" data-key="showFr01Panel" data-val="true" class="text-xs bg-intra-primary text-white px-3 py-1.5 rounded-[3px] hover:bg-intra-primaryDark transition font-bold">➕ 노트 추가</button>
                                                 </div>
                                                 ${f.notes && f.notes.length > 0 ? `
@@ -353,24 +353,40 @@
         const buildNoteCreateSplit = () => `
             <div class="flex h-full w-full bg-intra-bg">
                 
-                <!-- Left Pane: AI Analysis & Request Info (Read-Only Reference) -->
+                <!-- Left Pane: AI Analysis & Alternatives (Read-Only Reference) -->
                 <div class="w-1/2 p-6 overflow-y-auto border-r border-intra-border bg-white flex flex-col">
                     <div class="flex items-center text-sm text-intra-text/70 mb-4 shrink-0">
                         <span class="cursor-pointer hover:text-intra-primary" data-action="nav" data-view="list">작업목록</span> ❯ 
                         <span class="font-bold text-intra-text">작업노트 입력</span>
                     </div>
                     
-                    <p class="mb-6 text-sm text-intra-text/80">ℹ️ 좌측의 AI 분석 결과 및 요청 내용을 참고하여, 우측 폼에 개발 실제 내역을 작성해 주세요.</p>
+                    <p class="mb-6 text-sm text-intra-text/80">ℹ️ 좌측의 AI 분석 결과 및 대안 제안을 참고하여, 우측 폼에 개발 실제 내역을 작성해 주세요.</p>
 
+                    <!-- ADDED/MODIFIED: AI 1안, 2안 대안 표시 영역 추가 -->
                     <div class="bg-[#f1f8fc] border border-[#d6e9f5] rounded-[5px] p-5 mb-6">
                         <h2 class="text-sm font-bold text-intra-primary mb-3 flex items-center border-b border-[#d6e9f5] pb-2">
-                            🤖 AI 1차 분석 결과 (참고용)
+                            🤖 AI 분석 결과 및 해결방안 제안
                         </h2>
-                        <ul class="text-sm text-intra-text space-y-2">
+                        <ul class="text-sm text-intra-text space-y-2 mb-4">
                             <li><span class="font-bold">분류:</span> 오류수정 (Bug Fix)</li>
                             <li><span class="font-bold">영향화면:</span> 로그인 화면 (login.jsp)</li>
                             <li><span class="font-bold">발생환경:</span> IE 브라우저</li>
                         </ul>
+                        
+                        <div class="space-y-3">
+                            <div class="bg-white p-3 rounded-[5px] border border-[#d6e9f5] shadow-sm">
+                                <span class="font-bold text-intra-primary block mb-1 text-xs">🔍 원인 분석 추정</span>
+                                <span class="text-sm text-intra-text">SessionExpiredException 핸들러 부재로 인한 예외 반환. Spring Security 필터 체인 누락 의심.</span>
+                            </div>
+                            <div class="bg-white p-3 rounded-[5px] border border-[#d6e9f5] shadow-sm">
+                                <span class="font-bold text-intra-primary block mb-1 text-xs">💡 해결방안 1안 (기존 구조 유지)</span>
+                                <span class="text-sm text-intra-text">SessionExpiredException 핸들러 추가 및 /session-expired 리다이렉트 처리 로직 구현 (단기 공수 최소화)</span>
+                            </div>
+                            <div class="bg-white p-3 rounded-[5px] border border-[#d6e9f5] shadow-sm">
+                                <span class="font-bold text-intra-primary block mb-1 text-xs">💡 해결방안 2안 (리팩토링 방식)</span>
+                                <span class="text-sm text-intra-text">전역 인터셉터(Global Interceptor) 적용 및 토큰 기반 세션 관리로 근본적 구조 변경 (안정성 강화)</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="bg-gray-50 border border-intra-border rounded-[5px] p-5">
@@ -400,7 +416,6 @@
                         <h2 class="text-lg font-bold text-intra-text">개발자 작업 노트 입력</h2>
                         <div class="flex space-x-2">
                             <button class="px-4 py-1.5 border border-intra-border bg-white text-sm font-bold text-intra-text rounded-[3px] hover:bg-gray-50 transition">임시저장</button>
-                            <!-- Saving acts as finalizing and navigating to the View page -->
                             <button data-action="nav" data-view="note_detail_view" class="px-4 py-1.5 bg-intra-primary text-white text-sm font-bold rounded-[3px] hover:bg-intra-primaryDark transition">저장 및 업데이트</button>
                         </div>
                     </div>
@@ -408,7 +423,7 @@
                     <!-- Scrollable Form Content -->
                     <div class="p-6 overflow-y-auto flex-1 space-y-6">
                         
-                        <!-- Status and Time Panel (New Fields Added) -->
+                        <!-- Status and Time Panel -->
                         <div class="bg-white border border-intra-border rounded-[5px] p-5 shadow-sm">
                             <h3 class="text-sm font-bold border-l-[3px] border-intra-primary pl-2 mb-4">기본 정보 및 일정</h3>
                             <div class="grid grid-cols-2 gap-4 mb-4">
@@ -632,9 +647,9 @@
             switch(state.view) {
                 case 'list': mainContent = buildListView(); break;
                 case 'similar_search': mainContent = buildSimilarSearch(); break;
-                case 'folder_detail': mainContent = buildFolderDetail(); break; // Kept for fallback, but workflow favors accordion
-                case 'task_form': mainContent = buildTaskForm(); break; // Kept for legacy
-                case 'note_create': mainContent = buildNoteCreate(); break; // Kept for legacy
+                case 'folder_detail': mainContent = buildFolderDetail(); break;
+                case 'task_form': mainContent = buildTaskForm(); break;
+                case 'note_create': mainContent = buildNoteCreate(); break;
                 case 'note_create_split': mainContent = buildNoteCreateSplit(); break;
                 case 'note_detail_view': mainContent = buildNoteDetailView(); break;
                 case 'my_tasks': mainContent = buildMyTasks(); break;
