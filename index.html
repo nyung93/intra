@@ -66,7 +66,7 @@
     <!-- Application Structure Plan: The SPA features an Intranet layout. Folder list and Note list tables have been updated to prevent 2-line text wrapping using whitespace-nowrap and min-width techniques. The AI Sub-note creation has been migrated from a bottom sliding panel to a centered Modal popup to improve focus and UX. Split-Pane view is maintained for efficient note editing. -->
     <!-- Visualization & Content Choices: 
          - Modal for Folders & Notes: HTML fixed overlay (Goal: Organize/Inform). Clear, focused manual and AI inputs.
-         - Split Pane Editor: Flexbox (Goal: Change). Allows referencing AI while authoring final text.
+         - Split Pane Editor: Flexbox (Goal: Change). Allows referencing AI while authoring final text. Left pane includes full WYSIWYG editor UI for note content.
          - Data Tables: whitespace-nowrap applied (Goal: Inform). Clean layout on standard desktop resolutions. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All icons are Unicode. -->
 
@@ -139,7 +139,7 @@
             <header class="h-16 bg-intra-primary text-white flex items-center px-6 justify-between shrink-0 shadow-sm relative z-30">
                 <div class="flex items-center space-x-8">
                     <h1 class="text-lg font-bold flex items-center tracking-tight cursor-pointer" data-action="nav" data-view="list" data-menu="작업목록조회">
-                        📋 내부 업무 요청 게시판 <span class="ml-3 px-2 py-0.5 bg-white/20 text-white text-[10px] rounded">v1.5</span>
+                        📋 내부 업무 요청 게시판 <span class="ml-3 px-2 py-0.5 bg-white/20 text-white text-[10px] rounded">v1.6</span>
                     </h1>
                 </div>
                 <div class="flex items-center space-x-4">
@@ -361,15 +361,16 @@
         const buildNoteCreateSplit = () => `
             <div class="flex h-full w-full bg-intra-bg">
                 
-                <!-- Left Pane: AI Analysis & Alternatives (Read-Only Reference) -->
+                <!-- Left Pane: AI Analysis & Editable Note Content -->
                 <div class="w-1/2 p-6 overflow-y-auto border-r border-intra-border bg-white flex flex-col">
                     <div class="flex items-center text-sm text-intra-text/70 mb-4 shrink-0">
                         <span class="cursor-pointer hover:text-intra-primary" data-action="nav" data-view="list">작업목록</span> ❯ 
                         <span class="font-bold text-intra-text">작업노트 입력</span>
                     </div>
                     
-                    <p class="mb-6 text-sm text-intra-text/80">ℹ️ 좌측의 AI 분석 결과 및 대안 제안을 참고하여, 우측 폼에 개발 실제 내역을 작성해 주세요.</p>
+                    <p class="mb-6 text-sm text-intra-text/80">ℹ️ 좌측에서 요청 상세 내용을 작성하고, 우측에서 개발 처리 내용(상태, 소요시간, 해결방안 등)을 기입해 주세요.</p>
 
+                    <!-- AI Analysis Result -->
                     <div class="bg-[#f1f8fc] border border-[#d6e9f5] rounded-[5px] p-5 mb-6">
                         <h2 class="text-sm font-bold text-intra-primary mb-3 flex items-center border-b border-[#d6e9f5] pb-2">
                             🤖 AI 분석 결과 및 해결방안 제안
@@ -396,19 +397,60 @@
                         </div>
                     </div>
 
+                    <!-- Editable Note Details (Replaces old '원본 요청사항 요약') -->
                     <div class="bg-gray-50 border border-intra-border rounded-[5px] p-5">
                         <h2 class="text-sm font-bold text-intra-text mb-3 flex items-center border-b border-intra-border pb-2">
-                            📝 원본 요청사항 요약
+                            📝 작업노트
                         </h2>
                         <div class="space-y-4 text-sm">
-                            <div>
-                                <span class="font-bold text-intra-text/70 block mb-1">메뉴 경로 / 사용자</span>
-                                <span class="bg-white px-2 py-1 rounded border border-gray-200">공통모듈 > 로그인 / 전체사용자</span>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <span class="font-bold text-intra-text/70 block mb-1">시스템 메뉴 경로</span>
+                                    <input type="text" class="w-full bg-white px-3 py-2 rounded-[3px] border border-intra-border focus:border-intra-primary outline-none text-sm" value="공통모듈 > 로그인">
+                                </div>
+                                <div>
+                                    <span class="font-bold text-intra-text/70 block mb-1">사용자</span>
+                                    <select class="w-full bg-white px-3 py-2 rounded-[3px] border border-intra-border focus:border-intra-primary outline-none text-sm">
+                                        <option>전체사용자</option>
+                                        <option>관리자</option>
+                                        <option selected>상담원</option>
+                                        <option>학생</option>
+                                    </select>
+                                </div>
                             </div>
+
                             <div>
-                                <span class="font-bold text-intra-text/70 block mb-1">요청 원문</span>
-                                <div class="bg-white border border-gray-200 p-3 rounded">
-                                    세션 만료 시 redirect 처리 미흡 — Spring Security filterChain에서 expired session을 catch하지 못해 500 오류 반환.
+                                <span class="font-bold text-intra-text/70 block mb-1">내용</span>
+                                <div class="border border-intra-border rounded-[3px] bg-white overflow-hidden focus-within:border-intra-primary transition">
+                                    <!-- WYSIWYG Toolbar Mockup -->
+                                    <div class="bg-[#f8f9fa] border-b border-intra-border px-2 py-1.5 flex items-center space-x-1">
+                                        <button class="px-2 py-1 text-intra-text/60 hover:bg-gray-200 rounded font-bold">B</button>
+                                        <button class="px-2 py-1 text-intra-text/60 hover:bg-gray-200 rounded italic">I</button>
+                                        <button class="px-2 py-1 text-intra-text/60 hover:bg-gray-200 rounded underline">U</button>
+                                        <div class="w-px h-4 bg-intra-border mx-1"></div>
+                                        <button class="px-2 py-1 text-intra-text/60 hover:bg-gray-200 rounded">≣</button>
+                                        <button class="px-2 py-1 text-intra-text/60 hover:bg-gray-200 rounded">🔗</button>
+                                        <button class="px-2 py-1 text-intra-text/60 hover:bg-gray-200 rounded">📷</button>
+                                    </div>
+                                    <textarea class="w-full p-3 resize-none outline-none text-sm" rows="5">세션 만료 시 redirect 처리 미흡 — Spring Security filterChain에서 expired session을 catch하지 못해 500 오류 반환.</textarea>
+                                </div>
+                            </div>
+
+                            <div>
+                                <span class="font-bold text-intra-text/70 block mb-1">첨부파일</span>
+                                <div class="border-2 border-dashed border-intra-border bg-white rounded-[3px] p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition">
+                                    <span class="text-xl mb-1">📁</span>
+                                    <span class="text-xs text-intra-text/60">클릭하거나 파일을 드래그하여 첨부하세요</span>
+                                </div>
+                                <div class="mt-2 space-y-1">
+                                    <div class="flex items-center justify-between bg-white border border-intra-border px-3 py-2 rounded-[3px]">
+                                        <div class="flex items-center text-xs">
+                                            <span class="bg-red-100 text-red-600 px-1 rounded text-[10px] font-bold mr-2">PDF</span>
+                                            <span class="text-intra-text">error_capture.pdf</span>
+                                            <span class="text-intra-text/40 ml-2">(1.2MB)</span>
+                                        </div>
+                                        <button class="text-intra-text/40 hover:text-red-500 transition text-xs">✕</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
