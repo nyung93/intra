@@ -51,6 +51,7 @@
             background-color: #eef5f9;
             color: #455a64;
             letter-spacing: -0.5px;
+            overflow: hidden; /* 레이아웃 고정을 위해 body 스크롤 숨김 */
         }
         
         /* 도넛 차트 CSS */
@@ -105,14 +106,19 @@
         const AlertTriangle = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>;
         const Download = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
         const Filter = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>;
+        
+        // 새로 추가된 좌측 메뉴 아이콘
+        const Folder = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>;
+        const User = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>;
+        const Activity = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
 
         // --- MOCK DATA ---
         const MOCK_FOLDERS = [
-            { id: '001', title: '[로그인] 세션 만료 오류 수정 요청', type: '오류수정', date: '2025-04-18', author: '김개발', status: '진행중' },
-            { id: '002', title: '[매출현황] 월별 집계 기능 개선 요청', type: '기능개선', date: '2025-04-17', author: '이기획', status: '완료' },
-            { id: '003', title: '[회원관리] 신규 탈퇴 사유 항목 추가', type: '신규구축', date: '2025-04-16', author: '박운영', status: '검토중' },
-            { id: '004', title: '[공통모듈] 날짜 포맷 변경 요청', type: '공통변경', date: '2025-04-15', author: '최개발', status: '대기' },
-            { id: '005', title: '[대시보드] KPI 위젯 오류 수정', type: '오류수정', date: '2025-04-14', author: '김개발', status: '진행중' },
+            { id: '001', title: '[로그인] 세션 만료 오류 수정 요청', type: '오류수정', date: '2025-04-18', author: '김개발', status: '진행중', univ: 'A대학' },
+            { id: '002', title: '[매출현황] 월별 집계 기능 개선 요청', type: '기능개선', date: '2025-04-17', author: '이기획', status: '완료', univ: 'B대학' },
+            { id: '003', title: '[회원관리] 신규 탈퇴 사유 항목 추가', type: '신규구축', date: '2025-04-16', author: '박운영', status: '검토중', univ: 'C대학' },
+            { id: '004', title: '[공통모듈] 날짜 포맷 변경 요청', type: '공통변경', date: '2025-04-15', author: '최개발', status: '대기', univ: 'A대학' },
+            { id: '005', title: '[대시보드] KPI 위젯 오류 수정', type: '오류수정', date: '2025-04-14', author: '김개발', status: '진행중', univ: 'B대학' },
         ];
 
         const MOCK_MY_TASKS = [
@@ -134,9 +140,10 @@
         );
 
         function InternalRequestBoard() {
-            // 화면 라우팅 상태
+            // 화면 라우팅 및 좌측 메뉴 상태
             const [view, setView] = useState('list'); 
-            
+            const [activeMenu, setActiveMenu] = useState('작업목록조회'); // 좌측 LNB 활성화 메뉴
+
             // 기능 상태
             const [showFr01Panel, setShowFr01Panel] = useState(false);
             const [createTab, setCreateTab] = useState('cause'); 
@@ -149,12 +156,25 @@
             const [dateFilter, setDateFilter] = useState('이번달'); // 대시보드 기간 필터
             const [folderFilter, setFolderFilter] = useState('전체'); // 폴더 목록 필터
 
+            // 메뉴 클릭 통합 헨들러
+            const handleMenuClick = (menuName, targetView) => {
+                setActiveMenu(menuName);
+                setView(targetView);
+            };
+
             // ==========================================
             // [화면 1] 작업폴더 목록 & 자동 타이틀 생성
             // ==========================================
-            const FolderListView = () => (
+            const FolderListView = () => {
+                // 대학별 필터링 로직 추가
+                const isUnivFilter = ['A대학', 'B대학', 'C대학'].includes(activeMenu);
+                const filteredList = isUnivFilter 
+                    ? MOCK_FOLDERS.filter(f => f.univ === activeMenu)
+                    : MOCK_FOLDERS;
+
+                return (
                 <div className="flex flex-col h-full relative">
-                    <div className="p-6 flex-1">
+                    <div className="p-6 flex-1 pb-32">
                         {/* 검색 영역 카드 */}
                         <div className="bg-white rounded-[5px] shadow-none border border-intra-border p-4 mb-6 flex items-center space-x-4">
                             <div className="flex-1 relative">
@@ -183,11 +203,18 @@
 
                         {/* 목록 테이블 카드 */}
                         <div className="bg-white rounded-[5px] shadow-none border border-intra-border overflow-hidden">
+                            <div className="bg-gray-50 border-b border-intra-border px-4 py-3 flex items-center justify-between">
+                                <h3 className="font-bold text-intra-text flex items-center">
+                                    {isUnivFilter ? `[${activeMenu}] 소속 작업목록` : '전체 작업목록'}
+                                    <span className="ml-2 bg-white px-2 py-0.5 rounded border border-intra-border text-intra-primary text-xs">{filteredList.length}건</span>
+                                </h3>
+                            </div>
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-intra-tableHead text-intra-text border-b border-intra-border">
                                 <tr>
                                     <th className="px-6 py-3 font-medium text-center border-r border-white">No.</th>
                                     <th className="px-6 py-3 font-medium border-r border-white">폴더 타이틀</th>
+                                    <th className="px-6 py-3 font-medium border-r border-white text-center">대학 구분</th>
                                     <th className="px-6 py-3 font-medium border-r border-white text-center">요청 유형</th>
                                     <th className="px-6 py-3 font-medium border-r border-white text-center">요청일</th>
                                     <th className="px-6 py-3 font-medium border-r border-white text-center">담당자</th>
@@ -195,10 +222,11 @@
                                 </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                {MOCK_FOLDERS.map((f) => (
+                                {filteredList.length > 0 ? filteredList.map((f) => (
                                     <tr key={f.id} className="hover:bg-[#f1f8fc] cursor-pointer transition" onClick={() => setView('folder_detail')}>
                                     <td className="px-6 py-4 text-intra-text/60 text-center">{f.id}</td>
                                     <td className="px-6 py-4 font-bold text-intra-primary">{f.title}</td>
+                                    <td className="px-6 py-4 text-center text-intra-text/80 text-xs">{f.univ}</td>
                                     <td className="px-6 py-4 text-center">
                                         <span className="px-2 py-1 bg-gray-100 text-intra-text rounded-[5px] text-xs">{f.type}</span>
                                     </td>
@@ -212,7 +240,9 @@
                                         }`}>{f.status}</span>
                                     </td>
                                     </tr>
-                                ))}
+                                )) : (
+                                    <tr><td colSpan="7" className="px-6 py-12 text-center text-intra-text/50">조회된 작업목록이 없습니다.</td></tr>
+                                )}
                                 </tbody>
                             </table>
                         </div>
@@ -255,15 +285,16 @@
                         </div>
                     )}
                 </div>
-            );
+                );
+            };
 
             // ==========================================
             // [화면 1.5] 신규 요청 등록 > 유사 이력 탐색
             // ==========================================
             const SimilarSearchView = () => (
-                <div className="p-6 max-w-6xl mx-auto">
+                <div className="p-6 max-w-6xl mx-auto pb-32">
                     <div className="flex items-center text-sm text-intra-text/70 mb-6">
-                        <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => handleMenuClick('작업목록조회', 'list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
                         <span>신규 요청 등록</span> <ChevronRight className="w-4 h-4 mx-1" />
                         <span className="font-bold text-intra-text">타시스템 적용 검증</span>
                     </div>
@@ -328,11 +359,10 @@
             // [화면 2] 작업폴더 상세 > 요청 내용 1차 정리
             // ==========================================
             const FolderDetailView = () => (
-                <div className="p-6 max-w-6xl mx-auto">
+                <div className="p-6 max-w-6xl mx-auto pb-32">
                     <div className="flex items-center text-sm text-intra-text/70 mb-6">
-                        <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
-                        <span className="cursor-pointer hover:text-intra-primary transition">작업폴더 상세</span> <ChevronRight className="w-4 h-4 mx-1" />
-                        <span className="font-bold text-intra-text">요청내용 1차 정리</span>
+                        <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => handleMenuClick('작업목록조회', 'list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="font-bold text-intra-text">작업폴더 상세</span>
                     </div>
 
                     <div className="flex items-center mb-4">
@@ -387,19 +417,19 @@
             // [화면 2.5] 업무노트 작성 양식
             // ==========================================
             const TaskNoteFormView = () => (
-                <div className="flex flex-col min-h-full relative">
-                    <div className="p-6 max-w-6xl mx-auto w-full pb-8">
+                <div className="flex flex-col h-full relative">
+                    <div className="p-6 max-w-6xl mx-auto w-full pb-32">
                         <div className="flex items-center text-sm text-intra-text/70 mb-6">
-                            <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
+                            <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => handleMenuClick('작업목록조회', 'list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
                             <span className="font-bold text-intra-text">작업노트 작성</span>
                         </div>
 
-                        <div className="bg-intra-primary text-white p-4 rounded-t-[5px] flex justify-between items-center mb-6">
+                        <div className="bg-intra-primary text-white p-4 rounded-t-[5px] flex justify-between items-center mb-0">
                             <h1 className="text-xl font-bold">업무노트 작성 양식</h1>
                             <span className="px-3 py-1 bg-white/20 text-white text-xs font-bold rounded-full">신규작성</span>
                         </div>
 
-                        <div className="space-y-8 bg-white p-8 rounded-b-[5px] border border-t-0 border-intra-border">
+                        <div className="space-y-8 bg-white p-8 rounded-b-[5px] border border-t-0 border-intra-border shadow-sm">
                             {/* 1. 사용자 구분 */}
                             <div>
                                 <h3 className="text-lg font-bold text-intra-text border-l-[3px] border-intra-primary pl-3 mb-4 flex items-center">
@@ -453,8 +483,8 @@
                         </div>
                     </div>
 
-                    {/* 플로팅 하단바 (sticky 처리로 스크롤 이슈 해결) */}
-                    <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-intra-border flex justify-end space-x-4 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] z-20 w-full mt-auto">
+                    {/* 플로팅 하단바 */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-intra-border flex justify-end space-x-4 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] z-20 w-full">
                         <button className="px-8 py-2.5 bg-gray-100 text-intra-text font-bold rounded-[5px] hover:bg-gray-200 transition">임시 저장</button>
                         <button onClick={() => setView('note_create')} className="px-8 py-2.5 bg-intra-primary text-white font-bold rounded-[5px] hover:bg-intra-primaryDark transition flex items-center">
                             작업 상세(원인/해결) 작성 이동 <ChevronRight className="w-4 h-4 ml-2" />
@@ -467,10 +497,10 @@
             // [화면 3] 작업노트 작성 상세 (FR-03,04,05,07 복합 탭)
             // ==========================================
             const NoteCreateView = () => (
-                <div className="flex flex-col h-[calc(100vh-64px)] bg-intra-bg">
+                <div className="flex flex-col h-full bg-intra-bg">
                     <div className="bg-white border-b border-intra-border px-6 py-4 shrink-0">
                         <div className="flex items-center text-sm text-intra-text/70 mb-2">
-                        <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => handleMenuClick('작업목록조회', 'list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
                         <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => setView('task_form')}>업무노트 양식</span> <ChevronRight className="w-4 h-4 mx-1" />
                         <span className="font-bold text-intra-text">상세 작업노트 및 검증</span>
                         </div>
@@ -478,8 +508,8 @@
                     </div>
 
                     <div className="flex-1 flex overflow-hidden">
-                        {/* 좌측 탭 메뉴 */}
-                        <div className="w-64 bg-white border-r border-intra-border p-4 space-y-1 overflow-y-auto">
+                        {/* 좌측 서브 탭 메뉴 */}
+                        <div className="w-64 bg-white border-r border-intra-border p-4 space-y-1 overflow-y-auto shrink-0">
                         <button onClick={() => setCreateTab('cause')} className={`w-full flex items-center px-4 py-3 rounded-[5px] text-sm font-bold transition ${createTab === 'cause' ? 'bg-[#f1f8fc] text-intra-primary border border-[#d6e9f5]' : 'text-intra-text hover:bg-gray-50 border border-transparent'}`}>
                             <AlertCircle className="w-5 h-5 mr-3" /> 원인/해결방안 <FRBadge code="FR-03" />
                         </button>
@@ -502,7 +532,7 @@
                             {createTab === 'cause' && (
                                 <div className="max-w-4xl">
                                     <h2 className="text-xl font-bold text-intra-text border-l-[3px] border-intra-primary pl-3 mb-6">오류 원인 분석</h2>
-                                    <div className="bg-white border border-intra-border rounded-[5px] p-6 mb-6">
+                                    <div className="bg-white border border-intra-border rounded-[5px] p-6 mb-6 shadow-sm">
                                         <label className="block text-sm font-bold text-intra-text mb-2">원인 요약 <span className="text-[#ff6200]">*</span></label>
                                         <textarea className="w-full border border-intra-border rounded-[5px] p-3 text-sm focus:ring-1 focus:ring-intra-primary outline-none" rows="3" defaultValue="세션 만료 시 redirect 처리 미흡 — Spring Security filterChain에서 expired session을 catch하지 못해 500 오류 반환. IE에서 SameSite 쿠키 속성 미지원으로 세션 재발급 실패."></textarea>
                                     </div>
@@ -516,7 +546,7 @@
                                         </div>
                                     </div>
 
-                                    <div className="bg-white border border-t-0 border-intra-border p-6 relative">
+                                    <div className="bg-white border border-t-0 border-intra-border p-6 relative shadow-sm">
                                         {solutionTab === '1안' ? (
                                             <>
                                                 <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-3">
@@ -546,7 +576,7 @@
                             {createTab === 'error' && (
                                 <div className="max-w-4xl pb-24">
                                     <h2 className="text-xl font-bold text-intra-text border-l-[3px] border-intra-primary pl-3 mb-4">개발 오류 원인</h2>
-                                    <div className="bg-white border border-intra-border rounded-[5px] p-6 mb-8 space-y-4">
+                                    <div className="bg-white border border-intra-border rounded-[5px] p-6 mb-8 space-y-4 shadow-sm">
                                         <div className="grid grid-cols-[150px_1fr] items-center">
                                         <label className="text-sm font-bold text-intra-text">오류 발생 위치 *</label>
                                         <input type="text" className="border border-intra-border rounded-[5px] p-2 text-sm w-full outline-none focus:border-intra-primary" defaultValue="com.example.auth.SessionFilter / line 142" />
@@ -560,7 +590,7 @@
                                 <div className="max-w-5xl pb-24">
                                     <h2 className="text-xl font-bold text-intra-text border-l-[3px] border-intra-primary pl-3 mb-6">수정 화면 첨부 업로드</h2>
                                     <div className="grid grid-cols-2 gap-6 mb-8">
-                                        <div className="border border-intra-border rounded-[5px] bg-white overflow-hidden">
+                                        <div className="border border-intra-border rounded-[5px] bg-white overflow-hidden shadow-sm">
                                             <div className="bg-[#fff3e0] text-[#ff6200] px-4 py-2 text-sm font-bold border-b border-[#ffe0b2]">Before (수정 전)</div>
                                             <div className="p-6">
                                                 <div className="border-2 border-dashed border-intra-border rounded-[5px] h-40 flex flex-col items-center justify-center bg-gray-50 cursor-pointer hover:bg-gray-100 transition">
@@ -598,19 +628,19 @@
             // [화면 4] 작업노트 상세 (FR-06,09)
             // ==========================================
             const NoteDetailView = () => (
-                <div className="p-6 max-w-5xl mx-auto">
+                <div className="p-6 max-w-5xl mx-auto pb-32">
                     <div className="flex items-center text-sm text-intra-text/70 mb-6">
-                        <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => setView('list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => handleMenuClick('작업목록조회', 'list')}>작업폴더 목록</span> <ChevronRight className="w-4 h-4 mx-1" />
                         <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => setView('folder_detail')}>작업폴더 상세</span> <ChevronRight className="w-4 h-4 mx-1" />
                         <span className="font-bold text-intra-text">작업노트 상세</span>
                     </div>
 
                     {/* 상단 탭 인트라넷 스타일 (.customtab3) 적용 */}
                     <div className="flex mb-8 border-b border-intra-border">
-                        <button onClick={() => setDetailTab('answer')} className={`pb-3 px-6 text-lg font-bold transition border-b-0 ${detailTab === 'answer' ? 'border-t-[3px] border-t-intra-primary bg-white text-intra-primary' : 'border-t-[3px] border-t-transparent text-intra-text hover:text-intra-primary'}`}>
+                        <button onClick={() => setDetailTab('answer')} className={`pb-3 px-6 text-lg font-bold transition border-b-0 ${detailTab === 'answer' ? 'border-t-[3px] border-t-intra-primary bg-transparent text-intra-primary' : 'border-t-[3px] border-t-transparent text-intra-text hover:text-intra-primary'}`}>
                         답변 내용 <FRBadge code="FR-06" />
                         </button>
-                        <button onClick={() => setDetailTab('manual')} className={`pb-3 px-6 text-lg font-bold transition border-b-0 ${detailTab === 'manual' ? 'border-t-[3px] border-t-intra-primary bg-white text-intra-primary' : 'border-t-[3px] border-t-transparent text-intra-text hover:text-intra-primary'}`}>
+                        <button onClick={() => setDetailTab('manual')} className={`pb-3 px-6 text-lg font-bold transition border-b-0 ${detailTab === 'manual' ? 'border-t-[3px] border-t-intra-primary bg-transparent text-intra-primary' : 'border-t-[3px] border-t-transparent text-intra-text hover:text-intra-primary'}`}>
                         매뉴얼 반영 <FRBadge code="FR-09" />
                         </button>
                     </div>
@@ -625,12 +655,12 @@
                             </div>
 
                             {answerType === 'tech' ? (
-                                <div className="bg-white border border-t-0 border-intra-border p-8 min-h-[300px] text-sm font-mono text-intra-text space-y-4">
+                                <div className="bg-white border border-t-0 border-intra-border p-8 min-h-[300px] text-sm font-mono text-intra-text space-y-4 shadow-sm">
                                 <p># 원인: 세션 만료 예외 처리 누락으로 인한 500 오류</p>
                                 <p>1. AuthInterceptor.java 수정<br/>  - handleTokenExpiry() 메소드 추가<br/>  - Response Code 401 명시적 반환 처리</p>
                                 </div>
                             ) : (
-                                <div className="bg-white border border-t-0 border-intra-border p-8">
+                                <div className="bg-white border border-t-0 border-intra-border p-8 shadow-sm">
                                     <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-100">
                                         <span className="text-lg font-bold text-intra-text">담당자 답변 (쉬운 언어 버전)</span>
                                         <span className="px-3 py-1 bg-[#e8f0fe] text-intra-primary rounded-[5px] text-xs font-bold flex items-center"><Wand2 className="w-3 h-3 mr-1"/> AI 초안 · 검토 필요</span>
@@ -653,7 +683,7 @@
 
                     {detailTab === 'manual' && (
                         <div>
-                            <div className="bg-[#fff3e0] border border-[#ffe0b2] rounded-[5px] p-4 mb-6 flex items-start text-[#ff6200] text-sm">
+                            <div className="bg-[#fff3e0] border border-[#ffe0b2] rounded-[5px] p-4 mb-6 flex items-start text-[#ff6200] text-sm shadow-sm">
                                 <AlertTriangle className="w-5 h-5 mr-2 shrink-0 mt-0.5" />
                                 <div><p className="font-bold mb-1">수정된 내용과 연관된 매뉴얼 2건이 업데이트가 필요합니다.</p></div>
                             </div>
@@ -666,7 +696,6 @@
             // [화면 5] 나의 작업 목록
             // ==========================================
             const MyTasksView = () => {
-                // 필터링
                 let filteredTasks = MOCK_MY_TASKS;
                 if (taskFilter !== '전체') {
                     filteredTasks = MOCK_MY_TASKS.filter(function(task) {
@@ -678,9 +707,9 @@
                 }
 
                 return (
-                <div className="p-6 max-w-7xl mx-auto">
+                <div className="p-6 max-w-7xl mx-auto pb-32">
                     <div className="flex items-center text-sm text-intra-text/70 mb-6">
-                        <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => setView('list')}>홈</span> <ChevronRight className="w-4 h-4 mx-1" />
+                        <span className="cursor-pointer hover:text-intra-primary transition" onClick={() => handleMenuClick('작업목록조회', 'list')}>홈</span> <ChevronRight className="w-4 h-4 mx-1" />
                         <span className="font-bold text-intra-text">나의 작업 목록</span>
                     </div>
 
@@ -697,7 +726,7 @@
                     </div>
 
                     {/* 필터 및 테이블 */}
-                    <div className="bg-white border border-intra-border rounded-[5px] shadow-none">
+                    <div className="bg-white border border-intra-border rounded-[5px] shadow-none overflow-hidden">
                         <div className="p-4 border-b border-intra-border flex justify-between items-center bg-[#f8f9fa]">
                             <div className="flex space-x-4 flex-1">
                                 <div className="relative w-64">
@@ -761,7 +790,7 @@
             // [화면 6] 통계/현황 조회 대시보드
             // ==========================================
             const DashboardView = () => (
-                <div className="p-6 max-w-7xl mx-auto min-h-screen">
+                <div className="p-6 max-w-7xl mx-auto pb-32">
                     <div className="bg-white border border-intra-border rounded-[5px] p-4 mb-6 flex justify-between items-center shadow-none">
                         <div className="flex items-center space-x-4">
                             <span className="text-sm font-bold text-intra-text">조회기간 :</span>
@@ -818,21 +847,16 @@
             );
 
             // ==========================================
-            // 메인 렌더링 영역 (GNB & Main)
+            // 메인 렌더링 영역 (GNB & LNB & Main)
             // ==========================================
             return (
-                <div className="min-h-screen font-sans flex flex-col">
-                    {/* Header GNB (blue.css 테마 적용) */}
-                    <header className="h-16 bg-intra-primary text-white flex items-center px-6 justify-between shrink-0 shadow-md relative z-20">
+                <div className="h-screen w-full flex flex-col font-sans bg-intra-bg overflow-hidden">
+                    {/* Header GNB */}
+                    <header className="h-16 bg-intra-primary text-white flex items-center px-6 justify-between shrink-0 shadow-sm relative z-30">
                         <div className="flex items-center space-x-8">
-                            <h1 className="text-lg font-bold flex items-center tracking-tight">
+                            <h1 className="text-lg font-bold flex items-center tracking-tight cursor-pointer" onClick={() => handleMenuClick('작업목록조회', 'list')}>
                                 내부 업무 요청 게시판
                             </h1>
-                            <nav className="hidden md:flex space-x-1 ml-4">
-                                <button onClick={() => setView('list')} className={`px-4 py-2 rounded-[5px] text-sm font-bold transition ${view === 'list' || view === 'folder_detail' || view === 'task_form' || view === 'note_create' || view === 'note_detail' ? 'bg-white/20 text-white' : 'text-white/80 hover:text-white hover:bg-white/10'}`}>작업폴더 (게시판)</button>
-                                <button onClick={() => setView('my_tasks')} className={`px-4 py-2 rounded-[5px] text-sm font-bold transition ${view === 'my_tasks' ? 'bg-white/20 text-white' : 'text-white/80 hover:text-white hover:bg-white/10'}`}>나의 작업</button>
-                                <button onClick={() => setView('dashboard')} className={`px-4 py-2 rounded-[5px] text-sm font-bold transition ${view === 'dashboard' ? 'bg-white/20 text-white' : 'text-white/80 hover:text-white hover:bg-white/10'}`}>통계/리포트</button>
-                            </nav>
                         </div>
                         <div className="flex items-center space-x-4">
                             <div className="text-sm font-bold text-white/90 mr-2 border-r border-white/30 pr-4">김개발 님</div>
@@ -840,17 +864,83 @@
                         </div>
                     </header>
 
-                    {/* Main Content Area */}
-                    <main className="flex-1 overflow-auto relative">
-                        {view === 'list' && <FolderListView />}
-                        {view === 'similar_search' && <SimilarSearchView />}
-                        {view === 'folder_detail' && <FolderDetailView />}
-                        {view === 'task_form' && <TaskNoteFormView />}
-                        {view === 'note_create' && <NoteCreateView />}
-                        {view === 'note_detail' && <NoteDetailView />}
-                        {view === 'my_tasks' && <MyTasksView />}
-                        {view === 'dashboard' && <DashboardView />}
-                    </main>
+                    {/* Content Layout (Sidebar + Main) */}
+                    <div className="flex-1 flex overflow-hidden">
+                        {/* LNB (좌측 사이드바) */}
+                        <aside className="w-64 bg-white border-r border-intra-border flex flex-col shrink-0 overflow-y-auto relative z-20">
+                            {/* MYBOX 그룹 */}
+                            <div className="p-4 border-b border-intra-border/50">
+                                <h2 className="text-xs font-bold text-intra-text/50 mb-3 tracking-wider ml-2">MYBOX</h2>
+                                <ul className="space-y-1">
+                                    <li>
+                                        <button 
+                                            onClick={() => handleMenuClick('작업목록조회', 'list')} 
+                                            className={`w-full flex items-center px-3 py-2.5 rounded-[5px] text-sm transition ${activeMenu === '작업목록조회' ? 'bg-[#f1f8fc] text-intra-primary font-bold' : 'text-intra-text hover:bg-gray-50 font-medium'}`}
+                                        >
+                                            <svg className="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                                            전체 #작업목록조회
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button 
+                                            onClick={() => handleMenuClick('마이페이지', 'my_tasks')} 
+                                            className={`w-full flex flex-col items-start px-3 py-2.5 rounded-[5px] text-sm transition ${activeMenu === '마이페이지' ? 'bg-[#f1f8fc] text-intra-primary font-bold' : 'text-intra-text hover:bg-gray-50 font-medium'}`}
+                                        >
+                                            <div className="flex items-center">
+                                                <svg className="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                                전체 #마이페이지
+                                            </div>
+                                            <span className={`text-[10px] mt-1.5 ml-6 text-left ${activeMenu === '마이페이지' ? 'text-intra-primary/70' : 'text-intra-text/50'}`}>
+                                                내가 등록한 또는 나한테 요청한 작업노트 목록
+                                            </span>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button 
+                                            onClick={() => handleMenuClick('작업피드', 'dashboard')} 
+                                            className={`w-full flex items-center px-3 py-2.5 rounded-[5px] text-sm transition ${activeMenu === '작업피드' ? 'bg-[#f1f8fc] text-intra-primary font-bold' : 'text-intra-text hover:bg-gray-50 font-medium'}`}
+                                        >
+                                            <svg className="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                                            전체 #내 작업피드
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            {/* 대학별 폴더 그룹 */}
+                            <div className="p-4">
+                                <div className="flex justify-between items-center mb-3 ml-2 pr-2">
+                                    <h2 className="text-xs font-bold text-intra-text/50 tracking-wider">대학별 폴더</h2>
+                                    <Plus className="w-3.5 h-3.5 text-intra-text/50 cursor-pointer hover:text-intra-primary" title="대학 폴더 추가" />
+                                </div>
+                                <ul className="space-y-1">
+                                    {['A대학', 'B대학', 'C대학'].map(uni => (
+                                        <li key={uni}>
+                                            <button 
+                                                onClick={() => handleMenuClick(uni, 'list')} 
+                                                className={`w-full flex items-center px-3 py-2.5 rounded-[5px] text-sm transition ${activeMenu === uni ? 'bg-[#f1f8fc] text-intra-primary font-bold' : 'text-intra-text hover:bg-gray-50 font-medium'}`}
+                                            >
+                                                <div className={`w-1.5 h-1.5 rounded-full mr-3 ${activeMenu === uni ? 'bg-intra-primary' : 'bg-intra-border'}`}></div>
+                                                {uni}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </aside>
+
+                        {/* Main Content Area */}
+                        <main className="flex-1 overflow-y-auto relative bg-intra-bg">
+                            {view === 'list' && <FolderListView />}
+                            {view === 'similar_search' && <SimilarSearchView />}
+                            {view === 'folder_detail' && <FolderDetailView />}
+                            {view === 'task_form' && <TaskNoteFormView />}
+                            {view === 'note_create' && <NoteCreateView />}
+                            {view === 'note_detail' && <NoteDetailView />}
+                            {view === 'my_tasks' && <MyTasksView />}
+                            {view === 'dashboard' && <DashboardView />}
+                        </main>
+                    </div>
                 </div>
             );
         }
