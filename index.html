@@ -63,12 +63,11 @@
 <body>
 
     <!-- Chosen Palette: Intranet Blue (#1e88e5, #eef5f9, #455a64) -->
-    <!-- Application Structure Plan: The SPA features an Intranet layout. Based on recent feedback: Folder creation is now a manual modal. The AI title generation (FR-01) is repurposed for Sub-note creation. Sub-note creation uses a Split-Pane view (Edit Mode) showing AI analysis as a reference on the left, and input forms (including new Period and Est. Time fields) on the right. The Sub-note Detail view (Read Mode) hides the AI analysis and beautifully displays the manually authored content before showing the FR-06/09 tabs. -->
+    <!-- Application Structure Plan: The SPA features an Intranet layout. Folder list and Note list tables have been updated to prevent 2-line text wrapping using whitespace-nowrap and min-width techniques. The AI Sub-note creation has been migrated from a bottom sliding panel to a centered Modal popup to improve focus and UX. Split-Pane view is maintained for efficient note editing. -->
     <!-- Visualization & Content Choices: 
-         - Modal for Folders: HTML fixed overlay (Goal: Organize). Simple, non-intrusive manual input.
-         - AI Panel for Notes: Bottom sliding panel (Goal: Inform/Change). AI suggestions for new tasks.
+         - Modal for Folders & Notes: HTML fixed overlay (Goal: Organize/Inform). Clear, focused manual and AI inputs.
          - Split Pane Editor: Flexbox (Goal: Change). Allows referencing AI while authoring final text.
-         - Read-Only Detail View: Structured HTML Cards (Goal: Inform). Clean presentation of finalized data without clutter. -->
+         - Data Tables: whitespace-nowrap applied (Goal: Inform). Clean layout on standard desktop resolutions. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All icons are Unicode. -->
 
     <div id="app" class="h-screen w-full flex flex-col font-sans bg-intra-bg overflow-hidden"></div>
@@ -79,7 +78,7 @@
             view: 'list', // 'list', 'similar_search', 'folder_detail', 'note_create_split', 'note_detail_view', 'my_tasks', 'dashboard'
             activeMenu: '작업목록조회', 
             showNewFolderModal: false, // For manual folder creation
-            showFr01Panel: false, // For AI Sub-note title creation
+            showNewNoteModal: false, // Repurposed: Modal for AI Sub-note title creation
             expandedFolderId: null,
             createTab: 'cause', 
             detailTab: 'answer', 
@@ -140,7 +139,7 @@
             <header class="h-16 bg-intra-primary text-white flex items-center px-6 justify-between shrink-0 shadow-sm relative z-30">
                 <div class="flex items-center space-x-8">
                     <h1 class="text-lg font-bold flex items-center tracking-tight cursor-pointer" data-action="nav" data-view="list" data-menu="작업목록조회">
-                        📋 내부 업무 요청 게시판 <span class="ml-3 px-2 py-0.5 bg-white/20 text-white text-[10px] rounded">v1.4</span>
+                        📋 내부 업무 요청 게시판 <span class="ml-3 px-2 py-0.5 bg-white/20 text-white text-[10px] rounded">v1.5</span>
                     </h1>
                 </div>
                 <div class="flex items-center space-x-4">
@@ -212,7 +211,7 @@
                             </div>
                             <button class="px-6 py-2 bg-intra-primary text-white rounded-[5px] font-medium hover:bg-intra-primaryDark transition text-sm">검색</button>
                             
-                            <!-- Folder creation is now manual -->
+                            <!-- Folder creation is manual modal -->
                             <button data-action="toggle" data-key="showNewFolderModal" data-val="true" class="px-6 py-2 bg-white border border-intra-border text-intra-text rounded-[5px] font-medium hover:bg-gray-50 flex items-center transition text-sm">
                                 ➕ 새 폴더 등록
                             </button>
@@ -225,126 +224,135 @@
                                     <span class="ml-2 bg-white px-2 py-0.5 rounded border border-intra-border text-intra-primary text-xs">${filteredList.length}건</span>
                                 </h3>
                             </div>
-                            <table class="w-full text-left text-sm">
-                                <thead class="bg-intra-tableHead text-intra-text border-b border-intra-border">
-                                <tr>
-                                    <th class="px-6 py-3 font-medium text-center border-r border-white w-16">No.</th>
-                                    <th class="px-6 py-3 font-medium border-r border-white">폴더 타이틀</th>
-                                    <th class="px-6 py-3 font-medium border-r border-white text-center w-24">대학 구분</th>
-                                    <th class="px-6 py-3 font-medium border-r border-white text-center w-24">요청 유형</th>
-                                    <th class="px-6 py-3 font-medium border-r border-white text-center w-32">요청일</th>
-                                    <th class="px-6 py-3 font-medium border-r border-white text-center w-24">담당자</th>
-                                    <th class="px-6 py-3 font-medium text-center w-24">상태</th>
-                                </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                ${filteredList.length > 0 ? filteredList.map((f) => `
-                                    <tr data-action="toggleFolder" data-id="${f.id}" class="hover:bg-[#f1f8fc] cursor-pointer transition ${state.expandedFolderId === f.id ? 'bg-[#f1f8fc]' : ''}">
-                                        <td class="px-6 py-4 text-intra-text/60 text-center font-mono">${f.id}</td>
-                                        <td class="px-6 py-4 font-bold text-intra-primary flex items-center">
-                                            <span class="mr-2">${state.expandedFolderId === f.id ? '📂' : '📁'}</span> ${f.title}
-                                        </td>
-                                        <td class="px-6 py-4 text-center text-intra-text/80 text-xs">${f.univ}</td>
-                                        <td class="px-6 py-4 text-center"><span class="px-2 py-1 bg-gray-100 text-intra-text rounded-[5px] text-xs">${f.type}</span></td>
-                                        <td class="px-6 py-4 text-intra-text/70 text-center">${f.date}</td>
-                                        <td class="px-6 py-4 text-intra-text text-center">${f.author}</td>
-                                        <td class="px-6 py-4 text-center">
-                                            <span class="px-2 py-1 rounded-[5px] text-xs font-bold ${getStatusStyle(f.status)}">${f.status}</span>
-                                        </td>
+                            <!-- Added overflow-x-auto and whitespace-nowrap to prevent 2-line wraps -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm min-w-max">
+                                    <thead class="bg-intra-tableHead text-intra-text border-b border-intra-border">
+                                    <tr>
+                                        <th class="px-4 py-3 font-medium text-center border-r border-white whitespace-nowrap">No.</th>
+                                        <th class="px-4 py-3 font-medium border-r border-white min-w-[200px] whitespace-nowrap">폴더 타이틀</th>
+                                        <th class="px-4 py-3 font-medium border-r border-white text-center whitespace-nowrap">대학 구분</th>
+                                        <th class="px-4 py-3 font-medium border-r border-white text-center whitespace-nowrap">요청 유형</th>
+                                        <th class="px-4 py-3 font-medium border-r border-white text-center whitespace-nowrap">요청일</th>
+                                        <th class="px-4 py-3 font-medium border-r border-white text-center whitespace-nowrap">담당자</th>
+                                        <th class="px-4 py-3 font-medium text-center whitespace-nowrap">상태</th>
                                     </tr>
-                                    ${state.expandedFolderId === f.id ? `
-                                    <tr class="bg-intra-bg border-b-2 border-intra-primary/30">
-                                        <td colspan="7" class="p-6">
-                                            <div class="bg-white border border-intra-border rounded-[5px] shadow-sm overflow-hidden">
-                                                <div class="bg-gray-50 px-4 py-3 border-b border-intra-border flex justify-between items-center">
-                                                    <h4 class="font-bold text-intra-text text-sm flex items-center">↳ 하위 작업노트 목록</h4>
-                                                    <!-- Triggers AI Panel for Notes -->
-                                                    <button data-action="toggle" data-key="showFr01Panel" data-val="true" class="text-xs bg-intra-primary text-white px-3 py-1.5 rounded-[3px] hover:bg-intra-primaryDark transition font-bold">➕ 노트 추가</button>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                    ${filteredList.length > 0 ? filteredList.map((f) => `
+                                        <tr data-action="toggleFolder" data-id="${f.id}" class="hover:bg-[#f1f8fc] cursor-pointer transition ${state.expandedFolderId === f.id ? 'bg-[#f1f8fc]' : ''}">
+                                            <td class="px-4 py-4 text-intra-text/60 text-center font-mono whitespace-nowrap">${f.id}</td>
+                                            <td class="px-4 py-4 font-bold text-intra-primary flex items-center whitespace-nowrap">
+                                                <span class="mr-2">${state.expandedFolderId === f.id ? '📂' : '📁'}</span> ${f.title}
+                                            </td>
+                                            <td class="px-4 py-4 text-center text-intra-text/80 text-xs whitespace-nowrap">${f.univ}</td>
+                                            <td class="px-4 py-4 text-center whitespace-nowrap"><span class="px-2 py-1 bg-gray-100 text-intra-text rounded-[5px] text-xs">${f.type}</span></td>
+                                            <td class="px-4 py-4 text-intra-text/70 text-center whitespace-nowrap">${f.date}</td>
+                                            <td class="px-4 py-4 text-intra-text text-center whitespace-nowrap">${f.author}</td>
+                                            <td class="px-4 py-4 text-center whitespace-nowrap">
+                                                <span class="px-2 py-1 rounded-[5px] text-xs font-bold ${getStatusStyle(f.status)}">${f.status}</span>
+                                            </td>
+                                        </tr>
+                                        ${state.expandedFolderId === f.id ? `
+                                        <tr class="bg-intra-bg border-b-2 border-intra-primary/30">
+                                            <td colspan="7" class="p-6">
+                                                <div class="bg-white border border-intra-border rounded-[5px] shadow-sm overflow-hidden">
+                                                    <div class="bg-gray-50 px-4 py-3 border-b border-intra-border flex justify-between items-center">
+                                                        <h4 class="font-bold text-intra-text text-sm flex items-center">↳ 하위 작업노트 목록</h4>
+                                                        <!-- Triggers AI Modal for Notes -->
+                                                        <button data-action="toggle" data-key="showNewNoteModal" data-val="true" class="text-xs bg-intra-primary text-white px-3 py-1.5 rounded-[3px] hover:bg-intra-primaryDark transition font-bold shadow-sm">➕ 노트 추가</button>
+                                                    </div>
+                                                    ${f.notes && f.notes.length > 0 ? `
+                                                    <div class="overflow-x-auto">
+                                                        <table class="w-full text-xs text-left min-w-max">
+                                                            <thead class="bg-white border-b border-intra-border text-intra-text/70">
+                                                                <tr>
+                                                                    <th class="py-2 px-4 font-medium whitespace-nowrap text-center">노트 ID</th>
+                                                                    <th class="py-2 px-4 font-medium whitespace-nowrap">노트 제목</th>
+                                                                    <th class="py-2 px-4 font-medium text-center whitespace-nowrap">요청기간</th>
+                                                                    <th class="py-2 px-4 font-medium text-center whitespace-nowrap">예상 공수</th>
+                                                                    <th class="py-2 px-4 font-medium text-center whitespace-nowrap">실제 공수</th>
+                                                                    <th class="py-2 px-4 font-medium text-center whitespace-nowrap">담당자</th>
+                                                                    <th class="py-2 px-4 font-medium text-center whitespace-nowrap">상태</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody class="divide-y divide-gray-100">
+                                                                ${f.notes.map(n => `
+                                                                    <tr class="hover:bg-blue-50 cursor-pointer transition group" data-action="nav" data-view="note_detail_view">
+                                                                        <td class="py-3 px-4 font-mono text-intra-primary group-hover:underline text-center whitespace-nowrap">${n.id}</td>
+                                                                        <td class="py-3 px-4 font-bold whitespace-nowrap">${n.title}</td>
+                                                                        <td class="py-3 px-4 text-center font-mono text-intra-text/70 whitespace-nowrap">${n.period}</td>
+                                                                        <td class="py-3 px-4 text-center text-intra-text/70 whitespace-nowrap">${n.est}</td>
+                                                                        <td class="py-3 px-4 text-center font-bold whitespace-nowrap">${n.actual}</td>
+                                                                        <td class="py-3 px-4 text-center whitespace-nowrap">${n.assignee}</td>
+                                                                        <td class="py-3 px-4 text-center whitespace-nowrap">
+                                                                            <span class="px-2 py-0.5 rounded-[3px] text-[10px] font-bold ${getStatusStyle(n.status)}">${n.status}</span>
+                                                                        </td>
+                                                                    </tr>
+                                                                `).join('')}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    ` : `<div class="p-6 text-center text-sm text-intra-text/50 bg-white">등록된 하위 작업노트가 없습니다. 우측 상단의 '노트 추가' 버튼을 눌러 작업을 배정하세요.</div>`}
                                                 </div>
-                                                ${f.notes && f.notes.length > 0 ? `
-                                                <table class="w-full text-xs text-left">
-                                                    <thead class="bg-white border-b border-intra-border text-intra-text/70">
-                                                        <tr>
-                                                            <th class="py-2 px-4 font-medium w-24">노트 ID</th>
-                                                            <th class="py-2 px-4 font-medium">노트 제목</th>
-                                                            <th class="py-2 px-4 font-medium text-center">요청기간</th>
-                                                            <th class="py-2 px-4 font-medium text-center">예상 공수</th>
-                                                            <th class="py-2 px-4 font-medium text-center">실제 공수</th>
-                                                            <th class="py-2 px-4 font-medium text-center">담당자</th>
-                                                            <th class="py-2 px-4 font-medium text-center w-24">상태</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody class="divide-y divide-gray-100">
-                                                        ${f.notes.map(n => `
-                                                            <tr class="hover:bg-blue-50 cursor-pointer transition group" data-action="nav" data-view="note_detail_view">
-                                                                <td class="py-3 px-4 font-mono text-intra-primary group-hover:underline">${n.id}</td>
-                                                                <td class="py-3 px-4 font-bold">${n.title}</td>
-                                                                <td class="py-3 px-4 text-center font-mono text-intra-text/70">${n.period}</td>
-                                                                <td class="py-3 px-4 text-center text-intra-text/70">${n.est}</td>
-                                                                <td class="py-3 px-4 text-center font-bold">${n.actual}</td>
-                                                                <td class="py-3 px-4 text-center">${n.assignee}</td>
-                                                                <td class="py-3 px-4 text-center">
-                                                                    <span class="px-2 py-0.5 rounded-[3px] text-[10px] font-bold ${getStatusStyle(n.status)}">${n.status}</span>
-                                                                </td>
-                                                            </tr>
-                                                        `).join('')}
-                                                    </tbody>
-                                                </table>
-                                                ` : `<div class="p-6 text-center text-sm text-intra-text/50 bg-white">등록된 하위 작업노트가 없습니다. 우측 상단의 '노트 추가' 버튼을 눌러 작업을 배정하세요.</div>`}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    ` : ''}
-                                `).join('') : `<tr><td colspan="7" class="px-6 py-12 text-center text-intra-text/50">조회된 내역이 없습니다.</td></tr>`}
-                                </tbody>
-                            </table>
+                                            </td>
+                                        </tr>
+                                        ` : ''}
+                                    `).join('') : `<tr><td colspan="7" class="px-6 py-12 text-center text-intra-text/50">조회된 내역이 없습니다.</td></tr>`}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Manual New Folder Modal -->
                     ${state.showNewFolderModal ? `
-                        <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                            <div class="bg-white rounded-[5px] p-6 w-[400px] shadow-lg border border-intra-border">
+                        <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                            <div class="bg-white rounded-[5px] p-6 w-full max-w-[400px] shadow-lg border border-intra-border flex flex-col">
                                 <h3 class="font-bold text-lg mb-4 text-intra-text flex items-center">📁 새 폴더 등록</h3>
                                 <label class="block text-sm font-bold text-intra-text mb-2">폴더명 입력 (기획자 직접 지정)</label>
                                 <input type="text" class="w-full border border-intra-border rounded-[3px] p-2.5 text-sm outline-none focus:border-intra-primary mb-6 bg-gray-50" placeholder="예: [학사관리] 수강신청 오류 관련">
-                                <div class="flex justify-end space-x-2">
-                                    <button data-action="toggle" data-key="showNewFolderModal" data-val="false" class="px-4 py-2 border border-intra-border rounded-[3px] text-sm hover:bg-gray-50 font-bold text-intra-text">취소</button>
-                                    <button data-action="toggle" data-key="showNewFolderModal" data-val="false" class="px-4 py-2 bg-intra-primary text-white rounded-[3px] text-sm hover:bg-intra-primaryDark font-bold">폴더 등록</button>
+                                <div class="flex justify-end space-x-2 mt-auto">
+                                    <button data-action="toggle" data-key="showNewFolderModal" data-val="false" class="px-4 py-2 border border-intra-border rounded-[3px] text-sm hover:bg-gray-50 font-bold text-intra-text transition">취소</button>
+                                    <button data-action="toggle" data-key="showNewFolderModal" data-val="false" class="px-4 py-2 bg-intra-primary text-white rounded-[3px] text-sm hover:bg-intra-primaryDark font-bold transition">폴더 등록</button>
                                 </div>
                             </div>
                         </div>
                     ` : ''}
 
-                    <!-- Bottom Panel: AI Panel for Notes (Repurposed FR-01) -->
-                    <div class="absolute bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] border-t border-intra-border transform transition-transform z-20 ${state.showFr01Panel ? 'translate-y-0' : 'translate-y-full'}" style="transition: transform 0.3s ease;">
-                        <div class="bg-intra-primary text-white px-6 py-3 flex justify-between items-center">
-                            <h3 class="font-medium flex items-center">✨ 새 작업노트 타이틀 생성 (AI)</h3>
-                            ${getBadge('01')}
-                        </div>
-                        <div class="p-6">
-                            <label class="block text-sm font-bold text-intra-text mb-2">요청 상세 내용 입력</label>
-                            <textarea class="w-full border border-intra-border rounded-[5px] p-3 text-sm focus:ring-1 focus:ring-intra-primary outline-none mb-4 h-20">로그인 화면에서 세션 만료 후 새로고침 시 오류 페이지로 이동되는 문제 발생에 대한 처리 내역</textarea>
-                            
-                            <label class="block text-sm font-bold text-intra-text mb-2">AI 자동 생성 타이틀 후보</label>
-                            <div class="flex space-x-6 mb-6">
-                                <label class="flex items-center space-x-2 cursor-pointer">
-                                    <input type="radio" name="title" checked class="w-4 h-4 text-intra-primary focus:ring-intra-primary" />
-                                    <span class="text-intra-text font-bold">세션 만료 예외 처리 로직 추가</span>
-                                </label>
-                                <label class="flex items-center space-x-2 cursor-pointer">
-                                    <input type="radio" name="title" class="w-4 h-4 text-intra-primary focus:ring-intra-primary" />
-                                    <span class="text-intra-text font-bold">로그인 타임아웃 오류 수정</span>
-                                </label>
+                    <!-- Note Creation Modal (Replaced FR-01 Bottom Panel) -->
+                    ${state.showNewNoteModal ? `
+                        <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                            <div class="bg-white rounded-[5px] p-0 w-full max-w-[550px] shadow-lg border border-intra-border flex flex-col overflow-hidden max-h-[90vh]">
+                                <div class="bg-intra-primary text-white px-6 py-4 flex justify-between items-center">
+                                    <h3 class="font-bold flex items-center text-lg">✨ 새 작업노트 타이틀 생성 (AI)</h3>
+                                    ${getBadge('01')}
+                                </div>
+                                <div class="p-6 overflow-y-auto">
+                                    <label class="block text-sm font-bold text-intra-text mb-2">요청 상세 내용 입력</label>
+                                    <textarea class="w-full border border-intra-border rounded-[3px] p-3 text-sm focus:ring-1 focus:ring-intra-primary outline-none mb-4 h-24 resize-none bg-gray-50">로그인 화면에서 세션 만료 후 새로고침 시 오류 페이지로 이동되는 문제 발생에 대한 처리 내역</textarea>
+                                    
+                                    <label class="block text-sm font-bold text-intra-text mb-2">AI 자동 생성 타이틀 후보</label>
+                                    <div class="flex flex-col space-y-3 mb-6 bg-[#f1f8fc] border border-[#d6e9f5] p-4 rounded-[5px]">
+                                        <label class="flex items-center space-x-3 cursor-pointer">
+                                            <input type="radio" name="title" checked class="w-4 h-4 text-intra-primary focus:ring-intra-primary" />
+                                            <span class="text-intra-text font-bold text-sm">세션 만료 예외 처리 로직 추가</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer">
+                                            <input type="radio" name="title" class="w-4 h-4 text-intra-primary focus:ring-intra-primary" />
+                                            <span class="text-intra-text font-bold text-sm">로그인 타임아웃 오류 수정</span>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="flex justify-end space-x-2 pt-2">
+                                        <button data-action="toggle" data-key="showNewNoteModal" data-val="false" class="px-5 py-2.5 border border-intra-border text-intra-text font-bold rounded-[3px] hover:bg-gray-50 transition text-sm">취소</button>
+                                        <!-- Navigates to the Split View Editor -->
+                                        <button data-action="navAndCloseNoteModal" data-view="note_create_split" class="px-5 py-2.5 bg-intra-primary text-white rounded-[3px] font-bold hover:bg-intra-primaryDark transition text-sm">타이틀 확정 및 노트 작성 이동 ❯</button>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <div class="flex space-x-3">
-                                <!-- Navigates to the Split View Editor -->
-                                <button data-action="navAndClosePanel" data-view="note_create_split" class="px-6 py-2.5 bg-intra-primary text-white rounded-[5px] font-bold hover:bg-intra-primaryDark transition text-sm">타이틀 확정 및 노트 입력 이동 ❯</button>
-                                <button data-action="toggle" data-key="showFr01Panel" data-val="false" class="px-6 py-2.5 border border-intra-border text-intra-text font-bold rounded-[5px] hover:bg-gray-50 transition text-sm">취소</button>
-                            </div>
                         </div>
-                    </div>
+                    ` : ''}
                 </div>
             `;
         };
@@ -362,7 +370,6 @@
                     
                     <p class="mb-6 text-sm text-intra-text/80">ℹ️ 좌측의 AI 분석 결과 및 대안 제안을 참고하여, 우측 폼에 개발 실제 내역을 작성해 주세요.</p>
 
-                    <!-- ADDED/MODIFIED: AI 1안, 2안 대안 표시 영역 추가 -->
                     <div class="bg-[#f1f8fc] border border-[#d6e9f5] rounded-[5px] p-5 mb-6">
                         <h2 class="text-sm font-bold text-intra-primary mb-3 flex items-center border-b border-[#d6e9f5] pb-2">
                             🤖 AI 분석 결과 및 해결방안 제안
@@ -647,13 +654,11 @@
             switch(state.view) {
                 case 'list': mainContent = buildListView(); break;
                 case 'similar_search': mainContent = buildSimilarSearch(); break;
-                case 'folder_detail': mainContent = buildFolderDetail(); break;
-                case 'task_form': mainContent = buildTaskForm(); break;
-                case 'note_create': mainContent = buildNoteCreate(); break;
                 case 'note_create_split': mainContent = buildNoteCreateSplit(); break;
                 case 'note_detail_view': mainContent = buildNoteDetailView(); break;
                 case 'my_tasks': mainContent = buildMyTasks(); break;
                 case 'dashboard': mainContent = buildDashboard(); break;
+                default: mainContent = buildListView(); break;
             }
 
             app.innerHTML = `
@@ -720,9 +725,9 @@
                 state.view = btn.dataset.view;
                 if (btn.dataset.menu) state.activeMenu = btn.dataset.menu;
                 render();
-            } else if (action === 'navAndClosePanel') {
+            } else if (action === 'navAndCloseNoteModal') {
                 state.view = btn.dataset.view;
-                state.showFr01Panel = false;
+                state.showNewNoteModal = false;
                 render();
             } else if (action === 'toggle') {
                 state[btn.dataset.key] = btn.dataset.val === 'true';
