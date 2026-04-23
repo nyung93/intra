@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>작업노트 요청 게시판 </title>
+    <title>작업노트 요청 게시판 (Intranet SPA)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -83,7 +83,7 @@
             expandedFolderId: null,
             createTab: 'cause', 
             detailTab: 'answer', 
-            answerType: 'tech',
+            answerType: 'easy', // 수정: 탭 순서 변경에 따라 기본값을 'easy'로 설정
             solutionTab: '1안',
             taskFilter: '전체',
             dateFilter: '이번달',
@@ -141,7 +141,7 @@
             <header class="h-16 bg-intra-primary text-white flex items-center px-6 justify-between shrink-0 shadow-sm relative z-30">
                 <div class="flex items-center space-x-8">
                     <h1 class="text-lg font-bold flex items-center tracking-tight cursor-pointer" data-action="nav" data-view="list" data-menu="작업목록조회">
-                        📋 내부 업무 요청 게시판 <span class="ml-3 px-2 py-0.5 bg-white/20 text-white text-[10px] rounded">v1.7</span>
+                        📋 내부 업무 요청 게시판 <span class="ml-3 px-2 py-0.5 bg-white/20 text-white text-[10px] rounded">v1.8</span>
                     </h1>
                 </div>
                 <div class="flex items-center space-x-4">
@@ -213,7 +213,6 @@
                             </div>
                             <button class="px-6 py-2 bg-intra-primary text-white rounded-[5px] font-medium hover:bg-intra-primaryDark transition text-sm">검색</button>
                             
-                            <!-- Folder creation is manual modal -->
                             <button data-action="toggle" data-key="showNewFolderModal" data-val="true" class="px-6 py-2 bg-white border border-intra-border text-intra-text rounded-[5px] font-medium hover:bg-gray-50 flex items-center transition text-sm">
                                 ➕ 새 폴더 등록
                             </button>
@@ -320,7 +319,7 @@
                         </div>
                     ` : ''}
 
-                    <!-- Note Creation Modal (Replaced FR-01 Bottom Panel) -->
+                    <!-- Note Creation Modal -->
                     ${state.showNewNoteModal ? `
                         <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                             <div class="bg-white rounded-[5px] p-0 w-full max-w-[550px] shadow-lg border border-intra-border flex flex-col overflow-hidden max-h-[90vh]">
@@ -356,9 +355,9 @@
             `;
         };
 
+        // --- SPLIT PANE FOR NOTE EDITING ---
         const buildNoteCreateSplit = () => `
             <div class="flex h-full w-full bg-intra-bg">
-                <!-- Left Pane: AI Analysis & Editable Note Content -->
                 <div class="w-1/2 p-6 overflow-y-auto border-r border-intra-border bg-white flex flex-col">
                     <div class="flex items-center text-sm text-intra-text/70 mb-4 shrink-0">
                         <span class="cursor-pointer hover:text-intra-primary" data-action="nav" data-view="list">작업목록</span> ❯ 
@@ -431,31 +430,11 @@
                                     <textarea class="w-full p-3 resize-none outline-none text-sm" rows="5">세션 만료 시 redirect 처리 미흡 — Spring Security filterChain에서 expired session을 catch하지 못해 500 오류 반환.</textarea>
                                 </div>
                             </div>
-
-                            <div>
-                                <span class="font-bold text-intra-text/70 block mb-1">첨부파일</span>
-                                <div class="border-2 border-dashed border-intra-border bg-white rounded-[3px] p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition">
-                                    <span class="text-xl mb-1">📁</span>
-                                    <span class="text-xs text-intra-text/60">클릭하거나 파일을 드래그하여 첨부하세요</span>
-                                </div>
-                                <div class="mt-2 space-y-1">
-                                    <div class="flex items-center justify-between bg-white border border-intra-border px-3 py-2 rounded-[3px]">
-                                        <div class="flex items-center text-xs">
-                                            <span class="bg-red-100 text-red-600 px-1 rounded text-[10px] font-bold mr-2">PDF</span>
-                                            <span class="text-intra-text">error_capture.pdf</span>
-                                            <span class="text-intra-text/40 ml-2">(1.2MB)</span>
-                                        </div>
-                                        <button class="text-intra-text/40 hover:text-red-500 transition text-xs">✕</button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Pane: Developer Input Form -->
                 <div class="w-1/2 flex flex-col bg-intra-bg">
-                    
                     <div class="bg-white border-b border-intra-border px-6 py-4 shrink-0 flex justify-between items-center shadow-sm z-10">
                         <h2 class="text-lg font-bold text-intra-text">개발자 작업 노트 입력</h2>
                         <div class="flex space-x-2">
@@ -465,7 +444,6 @@
                     </div>
 
                     <div class="p-6 overflow-y-auto flex-1 space-y-6">
-                        
                         <div class="bg-white border border-intra-border rounded-[5px] p-5 shadow-sm">
                             <h3 class="text-sm font-bold border-l-[3px] border-intra-primary pl-2 mb-4">기본 정보 및 일정</h3>
                             <div class="grid grid-cols-2 gap-4 mb-4">
@@ -516,7 +494,7 @@
             </div>
         `;
 
-        // --- READ-ONLY NOTE DETAIL VIEW (Clean Presentation without AI boxes) ---
+        // --- READ-ONLY NOTE DETAIL VIEW ---
         const buildNoteDetailView = () => `
             <div class="p-6 max-w-5xl mx-auto pb-32 overflow-y-auto">
                 <div class="flex items-center text-sm text-intra-text/70 mb-6">
@@ -524,7 +502,6 @@
                     <span class="font-bold text-intra-text">작업노트 상세 조회</span>
                 </div>
                 
-                <!-- Finalized Content Header -->
                 <div class="bg-white border border-intra-border rounded-t-[5px] p-6 shadow-sm border-b-0 relative">
                     <div class="absolute top-6 right-6">
                         <button data-action="nav" data-view="note_create_split" class="px-3 py-1.5 border border-intra-border bg-gray-50 text-xs font-bold text-intra-text rounded-[3px] hover:bg-gray-100 transition">✏️ 수정 모드</button>
@@ -540,7 +517,6 @@
                     </div>
                 </div>
 
-                <!-- Finalized Content Body (Manual Input) -->
                 <div class="bg-white border border-intra-border rounded-b-[5px] p-6 shadow-sm mb-8">
                     <div class="mb-6">
                         <h3 class="text-sm font-bold border-l-[3px] border-intra-primary pl-2 mb-2 text-intra-text">개발 원인 분석 내용</h3>
@@ -568,8 +544,9 @@
 
                 ${state.detailTab === 'answer' ? `
                     <div class="flex mb-[-1px] relative z-10">
-                        <button data-action="set" data-key="answerType" data-val="tech" class="px-6 py-3 font-bold text-sm transition border border-b-0 border-intra-border ${state.answerType === 'tech' ? 'bg-intra-primary text-white border-t-[3px] border-t-intra-primaryDark' : 'bg-[#f8f9fa] text-intra-text hover:bg-gray-100 border-t-[3px] border-t-transparent'}">개발 답변 (기술용)</button>
-                        <button data-action="set" data-key="answerType" data-val="easy" class="px-6 py-3 font-bold text-sm transition border border-l-0 border-b-0 border-intra-border ${state.answerType === 'easy' ? 'bg-intra-primary text-white border-t-[3px] border-t-intra-primaryDark' : 'bg-[#f8f9fa] text-intra-text hover:bg-gray-100 border-t-[3px] border-t-transparent'}">담당자 답변 (쉬운 언어)</button>
+                        <!-- 수정됨: 담당자 답변(쉬운 언어)가 먼저 올 수 있도록 탭 순서 변경 -->
+                        <button data-action="set" data-key="answerType" data-val="easy" class="px-6 py-3 font-bold text-sm transition border border-b-0 border-intra-border ${state.answerType === 'easy' ? 'bg-intra-primary text-white border-t-[3px] border-t-intra-primaryDark' : 'bg-[#f8f9fa] text-intra-text hover:bg-gray-100 border-t-[3px] border-t-transparent'}">담당자 답변 (쉬운 언어)</button>
+                        <button data-action="set" data-key="answerType" data-val="tech" class="px-6 py-3 font-bold text-sm transition border border-l-0 border-b-0 border-intra-border ${state.answerType === 'tech' ? 'bg-intra-primary text-white border-t-[3px] border-t-intra-primaryDark' : 'bg-[#f8f9fa] text-intra-text hover:bg-gray-100 border-t-[3px] border-t-transparent'}">개발 답변 (기술용)</button>
                     </div>
 
                     ${state.answerType === 'tech' ? `
@@ -594,7 +571,8 @@
                             
                             <div class="text-sm text-intra-text">
                                 ${state.editModeFr06 ? `
-                                    <textarea class="w-full h-64 border border-intra-border rounded-[5px] p-4 text-sm outline-none focus:border-intra-primary leading-relaxed" defaultValue="안녕하세요, 선생님.&#13;&#10;요청하신 [로그인 세션 만료 시 빈 화면 노출 오류] 건에 대한 처리 결과를 안내해 드립니다.&#13;&#10;&#13;&#10;■ 메뉴 경로&#13;&#10;- 공통모듈 > 로그인&#13;&#10;&#13;&#10;■ 기존에는 어땠나요? (AS-IS)&#13;&#10;일정 시간(30분)이 지나 로그인이 풀렸을 때 화면을 새로고침하면, 오류 창이나 빈 화면이 나타나 이용에 불편함이 있으셨습니다.&#13;&#10;&#13;&#10;■ 어떻게 수정되었나요? (TO-BE)&#13;&#10;이제는 세션이 만료된 상태에서 새로고침을 하더라도 오류 화면 대신 '로그인 화면'으로 자연스럽게 다시 이동하도록 수정되었습니다. 평소처럼 편리하게 다시 로그인하여 이용하실 수 있습니다!&#13;&#10;&#13;&#10;확인 후 검수완료 부탁드립니다.&#13;&#10;감사합니다."></textarea>
+                                    <!-- 수정됨: 수정 버튼 클릭 시 AS-IS/TO-BE 형식이 그대로 텍스트 영역에 넘어오도록 적용 -->
+                                    <textarea class="w-full h-80 border border-intra-border rounded-[5px] p-4 text-sm outline-none focus:border-intra-primary leading-relaxed" defaultValue="안녕하세요, 선생님.&#13;&#10;요청하신 [로그인 세션 만료 시 빈 화면 노출 오류] 건에 대한 처리 결과를 안내해 드립니다.&#13;&#10;&#13;&#10;■ 메뉴 경로&#13;&#10;- 공통모듈 > 로그인&#13;&#10;&#13;&#10;■ 기존에는 어땠나요? (AS-IS)&#13;&#10;일정 시간(30분)이 지나 로그인이 풀렸을 때 화면을 새로고침하면, 오류 창이나 빈 화면이 나타나 이용에 불편함이 있으셨습니다.&#13;&#10;&#13;&#10;■ 어떻게 수정되었나요? (TO-BE)&#13;&#10;이제는 세션이 만료된 상태에서 새로고침을 하더라도 오류 화면 대신 '로그인 화면'으로 자연스럽게 다시 이동하도록 수정되었습니다. 평소처럼 편리하게 다시 로그인하여 이용하실 수 있습니다!&#13;&#10;&#13;&#10;확인 후 검수완료 부탁드립니다.&#13;&#10;감사합니다."></textarea>
                                 ` : `
                                     <div class="leading-relaxed">
                                         <p>안녕하세요, 선생님.<br>요청하신 [로그인 세션 만료 시 빈 화면 노출 오류] 건에 대한 처리 결과를 안내해 드립니다.</p>
@@ -617,13 +595,17 @@
                                 `}
                             </div>
 
+                            <!-- 버튼 영역 -->
                             <div class="mt-8 flex space-x-3">
                                 ${state.editModeFr06 ? `
                                     <button data-action="set" data-key="editModeFr06" data-val="false" class="px-6 py-2.5 bg-intra-primary text-white font-bold rounded-[5px] hover:bg-intra-primaryDark transition flex items-center">
                                         💾 편집 내용 저장
                                     </button>
+                                    <!-- 수정됨: 편집 취소 버튼 추가 -->
+                                    <button data-action="set" data-key="editModeFr06" data-val="false" class="px-6 py-2.5 border border-intra-border bg-white text-intra-text font-bold rounded-[5px] hover:bg-gray-50 transition flex items-center">
+                                        취소
+                                    </button>
                                 ` : ``}
-                                <button data-action="set" data-key="answerType" data-val="tech" class="px-6 py-2.5 bg-white border border-intra-border text-intra-text font-bold rounded-[5px] hover:bg-gray-50 ml-auto transition">개발 답변으로 전환</button>
                             </div>
                         </div>
                     `}
